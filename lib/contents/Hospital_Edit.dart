@@ -181,7 +181,9 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
     try {
       DocumentSnapshot clinicDoc = await FirebaseFirestore.instance.collection('clinics').doc(widget.clinicid).get();
+print(clinicDoc);
 
+print("ggggggggggggggggggggggggggggggggggggggg");
       if (!clinicDoc.exists) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Clinic data not found.')),
@@ -506,7 +508,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
       children: [
         const Text('Documents', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
         const SizedBox(height: 10),
-        Row(
+        Column(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
             ElevatedButton(

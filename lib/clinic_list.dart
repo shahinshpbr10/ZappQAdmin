@@ -357,7 +357,7 @@ class _ClinicListWidgetState extends State<ClinicListWidget> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => ClinicDetailsPage(clinicData: data),
+                          builder: (context) => ClinicDetailsPage(clinicData: data, email: doc.id,),
                         ),
                       );
                     },

@@ -1,4 +1,4 @@
-import 'package:firebase_storage/firebase_storage.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:zappq_admin_app/common/colors.dart';
@@ -8,24 +8,56 @@ import 'package:zappq_admin_app/contents/Edit_Staff.dart';
 import 'package:zappq_admin_app/contents/Live_Doctor.dart';
 import 'package:zappq_admin_app/main.dart';
 import 'package:zappq_admin_app/common/text_styles.dart';
-
 import 'contents/Hospital_Edit.dart';
 
 class ClinicDetailsPage extends StatefulWidget {
   final Map<String, dynamic> clinicData;
-
-  const ClinicDetailsPage({super.key, required this.clinicData});
+ final String email;
+  const ClinicDetailsPage({super.key, required this.clinicData, required this.email});
 
   @override
   State<ClinicDetailsPage> createState() => _ClinicDetailsPageState();
 }
 
 class _ClinicDetailsPageState extends State<ClinicDetailsPage> {
-  final TextEditingController _searchController = TextEditingController();
-  String _searchQuery = '';
   final ScrollController _scrollController = ScrollController();
   List items = ["Live Doctor", "Bookings", "Doctor Edit", "Staff Edit"];
-  List contents = [LiveTokenPage(),BookingsPage(),DoctorEdit(),StaffEdit()];
+  List contents = [LiveTokenPage(),BookingsPage(),DoctorDashboard(email: '',),StaffEdit()];
+
+  String? clinicid;
+
+  Future<void> getClinicIdByEmail(String email) async {
+    try {
+      // Reference to the Firestore collection
+      CollectionReference clinics = FirebaseFirestore.instance.collection('clinics');
+
+      // Query the collection to find the document where `admins` array contains the email
+      QuerySnapshot querySnapshot = await clinics.where('admins', arrayContains: email).get();
+
+      if (querySnapshot.docs.isNotEmpty) {
+        // Get the first matching document
+        DocumentSnapshot doc = querySnapshot.docs.first;
+
+        // Extract the clinicId
+        String? fetchedClinicId = doc['clinicId'] as String?;
+
+        // Update the state
+        setState(() {
+          clinicid = fetchedClinicId;
+        });
+      } else {
+        // No matching document found, set clinicid to null
+        setState(() {
+          clinicid = null;
+        });
+      }
+    } catch (e) {
+      print("Error fetching clinicId: $e");
+      setState(() {
+        clinicid = null; // Optionally handle errors in state
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -33,6 +65,13 @@ class _ClinicDetailsPageState extends State<ClinicDetailsPage> {
     super.dispose();
   }
 
+  @override
+  void initState() {
+    super.initState();
+
+    // Example usage
+    getClinicIdByEmail(widget.email);
+  }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -163,7 +202,13 @@ class _ClinicDetailsPageState extends State<ClinicDetailsPage> {
             ),
             GestureDetector(
               onTap: () {
-                Navigator.push(context, MaterialPageRoute(builder: (context) => EditProfilePage(clinicid: '',),));
+                Navigator.of(context).push(
+                  CupertinoPageRoute(
+                    builder: (context) {
+                      return EditProfilePage(clinicid: clinicid??"null");
+                    },
+                  ),
+                );
               },
               child: Container(
                 height: height * 0.1,
