@@ -22,7 +22,7 @@ class ClinicDetailsPage extends StatefulWidget {
 class _ClinicDetailsPageState extends State<ClinicDetailsPage> {
   final ScrollController _scrollController = ScrollController();
   List items = ["Live Doctor", "Bookings", "Doctor Edit", "Staff Edit"];
-  List contents = [LiveTokenPage(),BookingsPage(),DoctorDashboard(email: '',),StaffEdit()];
+  List contents = [LiveTokenPage(), BookingsPage(),DoctorDashboard(email: '',),StaffEdit()];
 
   String? clinicid;
 
