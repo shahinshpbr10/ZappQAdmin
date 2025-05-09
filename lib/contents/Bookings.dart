@@ -1,15 +1,13 @@
-import 'dart:io';
-
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:open_file/open_file.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:intl/intl.dart';
+import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
-import '../common/colors.dart';
-import '../common/text_styles.dart';
-import '../main.dart';
+import 'package:printing/printing.dart';
 
 class BookingsPage extends StatefulWidget {
-  const BookingsPage({super.key});
+  final String clinicid;
+  const BookingsPage({super.key, required this.clinicid});
 
   @override
   State<BookingsPage> createState() => _BookingsPageState();
@@ -18,6 +16,9 @@ class BookingsPage extends StatefulWidget {
 class _BookingsPageState extends State<BookingsPage> {
   TextEditingController searchController = TextEditingController();
   String searchQuery = "";
+  DateTime? selectedDate;
+
+  int currentTabIndex = 0;
 
   // Filtering helpers
   void updateSearchQuery(String query) {
@@ -26,116 +27,242 @@ class _BookingsPageState extends State<BookingsPage> {
     });
   }
 
-  DateTime? selectedDate;
+  Future<void> fetchClinicBookings(String clinicId) async {
+    try {
+      final bookingsSnapshot =
+          await FirebaseFirestore.instance
+              .collection('clinics')
+              .doc(clinicId)
+              .collection('bookings')
+              .get();
 
-  Future<void> _generatePdfReport(DateTime date) async {
+      for (var doc in bookingsSnapshot.docs) {
+        print('Booking ID: ${doc.id}');
+        print('Data: ${doc.data()}');
+      }
+    } catch (e) {
+      print('Error fetching bookings: $e');
+    }
+  }
+
+  DateTime? fromDate;
+  DateTime? toDate;
+
+// Generate PDF function with clinic name
+  Future<void> generatePdf(List<DocumentSnapshot> filteredBookings, String clinicName, DateTime fromDate, DateTime toDate) async {
     final pdf = pw.Document();
+
     pdf.addPage(
       pw.Page(
-        build: (context) => pw.Center(
-          child: pw.Text(
-            'Report for: ${date.toLocal().toString().split('')[0]}',
-            style: pw.TextStyle(fontSize: 24),
-          ),
-        ),
+        build: (pw.Context context) {
+          return pw.Column(
+            children: [
+              pw.Text(
+                'Patient Bookings Report',
+                textAlign: pw.TextAlign.center,
+                style: pw.TextStyle(
+                  fontSize: 18,
+                  fontWeight: pw.FontWeight.bold,
+                ),
+              ),
+              pw.SizedBox(height: 10),
+              pw.Text(
+                'From ${DateFormat('dd-MM-yyyy').format(fromDate)} to ${DateFormat('dd-MM-yyyy').format(toDate)}',
+                style: pw.TextStyle(fontSize: 14),
+              ),
+              pw.SizedBox(height: 20),
+              pw.Table.fromTextArray(
+                border: pw.TableBorder.all(),
+                headers: [
+                  'Patient Name',
+                  'Booking Date',
+                  'Doctor',
+                  'Phone Number',
+                ],
+                data: filteredBookings.map((doc) {
+                  final data = doc.data() as Map<String, dynamic>;
+                  return [
+                    data['patientName'] ?? '',
+                    data['bookingDate'] ?? '',
+                    data['doctorName'] ?? '',
+                    data['phoneNumber'] ?? '',
+                  ];
+                }).toList(),
+              ),
+            ],
+          );
+        },
       ),
     );
 
-    final outputDir = await getTemporaryDirectory();
-    final filePath = "${outputDir.path}/report_${date.toIso8601String()}.pdf";
-    final file = File(filePath);
-    await file.writeAsBytes(await pdf.save());
-
-    // Open the PDF
-    await OpenFile.open(filePath);
+    await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => pdf.save());
   }
 
-  Future<void> _selectDateAndGenerateReport(BuildContext context) async {
-    final picked = await showDatePicker(
+// Select from and to date, then generate report
+  Future<void> _selectDateRangeAndGenerateReport(BuildContext context) async {
+    DateTimeRange? pickedRange = await showDateRangePicker(
       context: context,
-      initialDate: selectedDate ?? DateTime.now(),
       firstDate: DateTime(2000),
       lastDate: DateTime(2100),
     );
 
-    if (picked != null) {
-      setState(() {
-        selectedDate = picked;
-      });
-      await _generatePdfReport(picked);
+    if (pickedRange != null) {
+      final fromDate = pickedRange.start;
+      final toDate = pickedRange.end;
+
+      // Fetch clinic name
+      DocumentSnapshot clinicDoc = await FirebaseFirestore.instance
+          .collection('clinics')
+          .doc(widget.clinicid)
+          .get();
+
+      String clinicName = (clinicDoc.data() as Map<String, dynamic>)['clinicName'] ?? 'Clinic';
+
+      // Fetch bookings within date range
+      QuerySnapshot querySnapshot = await FirebaseFirestore.instance
+          .collection('clinics')
+          .doc(widget.clinicid)
+          .collection('bookings')
+          .where('bookingDate', isGreaterThanOrEqualTo: DateFormat('yyyy-MM-dd').format(fromDate))
+          .where('bookingDate', isLessThanOrEqualTo: DateFormat('yyyy-MM-dd').format(toDate))
+          .get();
+
+      List<DocumentSnapshot> filteredBookings = querySnapshot.docs;
+
+      await generatePdf(filteredBookings, clinicName, fromDate, toDate);
     }
   }
+
+  bool isUpcoming(String dateStr) {
+    try {
+      final now = DateTime.now();
+      final date = DateFormat('yyyy-MM-dd').parse(dateStr);
+      return date.isAfter(now);
+    } catch (_) {
+      return false;
+    }
+  }
+
+  bool isExpired(String dateStr) {
+    try {
+      final now = DateTime.now();
+      final date = DateFormat('yyyy-MM-dd').parse(dateStr);
+      return date.isBefore(now);
+    } catch (_) {
+      return false;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _selectDateAndGenerateReport(context),
-        tooltip: 'Pick Date & Print',
-        child: Icon(Icons.calendar_today),
-      ),
-      appBar: AppBar(
-        centerTitle: true,
-        title: Text("All Bookings",style: AppTextStyles.heading1.copyWith(fontWeight: FontWeight.bold, fontSize: 20)),
-      ),
-      body:Padding(
-        padding: EdgeInsets.all(width*0.05),
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
-              TextField(
-                style: AppTextStyles.smallBodyText.copyWith(color: Colors.white),
+    return DefaultTabController(
+      length: 3,
+      initialIndex: 0,
+      child: Scaffold(
+        floatingActionButton: FloatingActionButton(
+          onPressed: () =>_selectDateRangeAndGenerateReport(context),
+          tooltip: 'Pick Date & Generate PDF',
+          child: Icon(Icons.picture_as_pdf),
+        ),
+        appBar: AppBar(
+          title: Text('Clinic Bookings'),
+          bottom: TabBar(
+            onTap: (index) {
+              setState(() => currentTabIndex = index);
+            },
+            tabs: const [
+              Tab(text: 'All'),
+              Tab(text: 'Upcoming'),
+              Tab(text: 'Expired'),
+            ],
+          ),
+        ),
+        body: Column(
+          children: [
+            // 🔍 Search Bar
+            Padding(
+              padding: const EdgeInsets.all(10.0),
+              child: TextField(
                 controller: searchController,
-                onChanged: updateSearchQuery,
                 decoration: InputDecoration(
-                  hintText: "Search by patient name",
-                  hintStyle: TextStyle(color: Colors.white),
-                  prefixIcon: Icon(Icons.search, color: Colors.white),
-                  filled: true,
-                  fillColor: AppColors.lightpacha,
+                  hintText: 'Search by patient name',
+                  prefixIcon: Icon(Icons.search),
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
+                    borderRadius: BorderRadius.circular(20),
                   ),
                 ),
+                onChanged:
+                    (val) => setState(() => searchQuery = val.toLowerCase()),
               ),
-              SizedBox(
-                height: height,
-                width: width,
-                child: ListView.builder(
-                  itemCount: 10,
-                  shrinkWrap: true,
-                  scrollDirection: Axis.vertical,
-                  itemBuilder: (BuildContext context, int index) {
-                    return Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: Container(
-                        height: height*0.2,
-                        width: width*0.8,
-                        decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(width*0.03),
-                            color: AppColors.lightpacha
+            ),
+            // 📋 Booking List
+            Expanded(
+              child: StreamBuilder<QuerySnapshot>(
+                stream:
+                    FirebaseFirestore.instance
+                        .collection('clinics')
+                        .doc(widget.clinicid)
+                        .collection('bookings')
+                        .orderBy('bookingDate', descending: true)
+                        .snapshots(),
+                builder: (context, snapshot) {
+                  if (snapshot.hasError)
+                    return Center(child: Text('Error loading data'));
+                  if (snapshot.connectionState == ConnectionState.waiting)
+                    return Center(child: CircularProgressIndicator());
+
+                  final docs = snapshot.data!.docs;
+                  final filtered =
+                      docs.where((doc) {
+                        final data = doc.data() as Map<String, dynamic>;
+                        final name = (data['patientName'] ?? '').toLowerCase();
+                        final dateStr = data['bookingDate'] ?? '';
+
+                        if (!name.contains(searchQuery)) return false;
+
+                        if (currentTabIndex == 1) return isUpcoming(dateStr);
+                        if (currentTabIndex == 2) return isExpired(dateStr);
+                        return true;
+                      }).toList();
+
+                  if (filtered.isEmpty) {
+                    return Center(child: Text('No bookings found'));
+                  }
+
+                  return ListView.builder(
+                    itemCount: filtered.length,
+                    itemBuilder: (context, index) {
+                      final data =
+                          (filtered[index].data() as Map<String, dynamic>);
+                      return Card(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
                         ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        margin: EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        elevation: 4,
+                        child: ListTile(
+                          contentPadding: EdgeInsets.all(16),
+                          title: Text(data['patientName'] ?? 'No Name'),
+                          subtitle: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text("Patient name:",style: AppTextStyles.bodyText.copyWith(fontWeight: FontWeight.bold, fontSize: 16)),
-                              Text("Phone number:",style: AppTextStyles.bodyText.copyWith(fontWeight: FontWeight.bold, fontSize: 16)),
-                              Text("Doctor name:", style: AppTextStyles.bodyText.copyWith(fontWeight: FontWeight.bold, fontSize: 16)),
-                              Text("Token number:", style: AppTextStyles.bodyText.copyWith(fontWeight: FontWeight.bold, fontSize: 16)),
-                              Text("Online/Offline:", style: AppTextStyles.bodyText.copyWith(fontWeight: FontWeight.bold, fontSize: 16)),
+                              Text('Age: ${data['age'] ?? 'N/A'}'),
+                              Text('Date: ${data['bookingDate']}'),
+                              Text('Doctor: ${data['doctorName']}'),
+                              Text('Phone number:${data['phoneNumber']}'),
                             ],
                           ),
                         ),
-                      ),
-                    );
-                  },
-                ),
-              )
-            ],
-          ),
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
         ),
       ),
     );
