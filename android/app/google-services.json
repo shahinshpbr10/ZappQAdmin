@@ -292,12 +292,56 @@
     },
     {
       "client_info": {
+        "mobilesdk_app_id": "1:853054702494:android:bbfe0a3c74019a5da30c8f",
+        "android_client_info": {
+          "package_name": "com.quadvare.zappqAdmin"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "853054702494-nfiesb64gs1iu44rrpmv678ba6cq7kau.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDA2yNxEEZ2QKHWnEuUsxOiDH9Yv74ZHko"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "853054702494-lp3jogdvru9m45l0a43kju520h7csqg8.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "853054702494-0rm90i2qu5j8rhar7tlmsakvmn4l4cj1.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.qvPatient"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
         "mobilesdk_app_id": "1:853054702494:android:764a4b13f0708374a30c8f",
         "android_client_info": {
           "package_name": "com.quadvare.zappq_admin.app"
         }
       },
       "oauth_client": [
+        {
+          "client_id": "853054702494-67ao1jdfupkbqv59lh0h1s2rf665734m.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.quadvare.zappq_admin.app",
+            "certificate_hash": "7fa9113cf6cf9820a9094025893cd3bf262a2904"
+          }
+        },
         {
           "client_id": "853054702494-nfiesb64gs1iu44rrpmv678ba6cq7kau.apps.googleusercontent.com",
           "client_type": 3

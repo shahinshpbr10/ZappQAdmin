@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:zappq_admin_app/common/colors.dart';
+import 'package:zappq_admin_app/contents/Account_Creation.dart';
 import 'package:zappq_admin_app/contents/Bookings.dart';
 import 'package:zappq_admin_app/contents/Staff_add.dart';
 import 'package:zappq_admin_app/contents/Live_Doctor.dart';
@@ -25,7 +26,7 @@ class ClinicDetailsPage extends StatefulWidget {
 class _ClinicDetailsPageState extends State<ClinicDetailsPage> {
   final ScrollController _scrollController = ScrollController();
   late List<dynamic> contents;
-  List items = ["Live Doctor", "Bookings", "Staff Edit", "Staff Add"];
+  List items = ["Live Doctor", "Bookings", "Staff Edit", "Staff Add","Hospital Edit","Create Account"];
 
 
   String? clinicid;
@@ -45,11 +46,12 @@ class _ClinicDetailsPageState extends State<ClinicDetailsPage> {
     print(clinicid);
 
     contents = [
-      LiveTokenPage(),
+      LiveTokenPage(clinicId: widget.ClinicId,),
       BookingsPage(clinicid:widget.ClinicId ),
-
       DoctorView(clinicId: widget.ClinicId),
       StaffCreation(clinicId: widget.ClinicId),
+      EditProfilePage(clinicid: widget.ClinicId),
+      CreateAccountPage()
     ];
     // Example usage
     // getClinicIdByEmail(widget.email);
@@ -113,7 +115,7 @@ class _ClinicDetailsPageState extends State<ClinicDetailsPage> {
                 Text(
                   widget.clinicData['name'] ?? 'Hospital Name',
                   style: const TextStyle(
-                    fontSize: 24,
+                    fontSize: 22,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -145,10 +147,10 @@ class _ClinicDetailsPageState extends State<ClinicDetailsPage> {
               ],
             ),
             SizedBox(
-              height: height * 0.5,
+              height: height * 0.6,
               width: width,
               child: GridView.builder(
-                itemCount: 4,
+                itemCount: contents.length,
                 shrinkWrap: true,
                 padding: EdgeInsets.all(width * 0.02),
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
@@ -189,35 +191,35 @@ class _ClinicDetailsPageState extends State<ClinicDetailsPage> {
                 },
               ),
             ),
-            GestureDetector(
-              onTap: () {
-                Navigator.of(context).push(
-                  CupertinoPageRoute(
-                    builder: (context) {
-                      return EditProfilePage(clinicid: clinicid??"null");
-                    },
-                  ),
-                );
-              },
-              child: Container(
-                height: height * 0.1,
-                width: width * 0.5,
-                decoration: BoxDecoration(
-                  color: AppColors.mainlightpacha,
-                  borderRadius: BorderRadius.circular(width * 0.03),
-                ),
-                child: Center(
-                  child: Text(
-                    "Hospital Edit",
-                    style: AppTextStyles.bodyText.copyWith(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                      color: AppColors.white,
-                    ),
-                  ),
-                ),
-              ),
-            ),
+            // GestureDetector(
+            //   onTap: () {
+            //     Navigator.of(context).push(
+            //       CupertinoPageRoute(
+            //         builder: (context) {
+            //           return EditProfilePage(clinicid: clinicid??"null");
+            //         },
+            //       ),
+            //     );
+            //   },
+            //   child: Container(
+            //     height: height * 0.1,
+            //     width: width * 0.5,
+            //     decoration: BoxDecoration(
+            //       color: AppColors.mainlightpacha,
+            //       borderRadius: BorderRadius.circular(width * 0.03),
+            //     ),
+            //     child: Center(
+            //       child: Text(
+            //         "Hospital Edit",
+            //         style: AppTextStyles.bodyText.copyWith(
+            //           fontWeight: FontWeight.bold,
+            //           fontSize: 16,
+            //           color: AppColors.white,
+            //         ),
+            //       ),
+            //     ),
+            //   ),
+            // ),
           ],
         ),
       ),

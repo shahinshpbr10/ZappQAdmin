@@ -313,13 +313,10 @@ class _ClinicListWidgetState extends State<ClinicListWidget> {
           StreamBuilder<QuerySnapshot>(
             stream: FirebaseFirestore.instance
                 .collection('clinics')
-                .limit(2)
                 .snapshots(),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting || _isLoading) {
-                return Column(
-                  children: List.generate(2, (_) => _buildLoadingPlaceholder(context)),
-                );
+                return Center(child: CircularProgressIndicator(color: AppColors.lightpacha,));
               }
 
               if (snapshot.hasError) {

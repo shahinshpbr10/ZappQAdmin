@@ -6,7 +6,8 @@ import '../common/colors.dart';
 import '../loading_animation.dart';
 
 class LiveTokenPage extends StatefulWidget {
-  const LiveTokenPage({super.key});
+  final String clinicId;
+  const LiveTokenPage({super.key, required this.clinicId});
 
   @override
   _LiveTokenPageState createState() => _LiveTokenPageState();
@@ -31,6 +32,15 @@ class _LiveTokenPageState extends State<LiveTokenPage> {
   }
 
   @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    setState(() {
+      String clinicId = widget.clinicId;
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     // Filter by today's date
     DateTime now = DateTime.now().toUtc();
@@ -38,11 +48,19 @@ class _LiveTokenPageState extends State<LiveTokenPage> {
     DateTime endOfDay = DateTime.utc(now.year, now.month, now.day, 23, 59, 59);
 
     // Listen to live tokens
-    Stream<QuerySnapshot> liveTokensStream = firestore
-        .collection('liveToken')
-        .where("createdAt", isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
-        .where("createdAt", isLessThanOrEqualTo: Timestamp.fromDate(endOfDay))
-        .snapshots();
+    Stream<QuerySnapshot> liveTokensStream =
+        firestore
+            .collection('liveToken')
+            .where(
+              "createdAt",
+              isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay),
+            )
+            .where(
+              "createdAt",
+              isLessThanOrEqualTo: Timestamp.fromDate(endOfDay),
+            )
+            .snapshots();
+
 
     return Scaffold(
       backgroundColor: AppColors.scaffoldbackgroundcolour,
@@ -59,7 +77,12 @@ class _LiveTokenPageState extends State<LiveTokenPage> {
         flexibleSpace: Column(
           children: [
             const SizedBox(height: 40),
-            Text("Live Doctors", style: AppTextStyles.heading2.copyWith(color: AppColors.scaffoldbackgroundcolour)),
+            Text(
+              "Live Doctors",
+              style: AppTextStyles.heading2.copyWith(
+                color: AppColors.scaffoldbackgroundcolour,
+              ),
+            ),
             const SizedBox(height: 10),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 18.0),
@@ -68,7 +91,9 @@ class _LiveTokenPageState extends State<LiveTokenPage> {
                   Expanded(
                     flex: 9,
                     child: TextField(
-                      style: AppTextStyles.smallBodyText.copyWith(color: Colors.white),
+                      style: AppTextStyles.smallBodyText.copyWith(
+                        color: Colors.white,
+                      ),
                       controller: searchController,
                       onChanged: updateSearchQuery,
                       decoration: InputDecoration(
@@ -76,7 +101,8 @@ class _LiveTokenPageState extends State<LiveTokenPage> {
                         hintStyle: TextStyle(color: Colors.white),
                         prefixIcon: Icon(Icons.search, color: Colors.white),
                         filled: true,
-                        fillColor: AppColors.scaffoldbackgroundcolour.withOpacity(0.2),
+                        fillColor: AppColors.scaffoldbackgroundcolour
+                            .withOpacity(0.2),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                           borderSide: BorderSide.none,
@@ -116,10 +142,13 @@ class _LiveTokenPageState extends State<LiveTokenPage> {
                 child: SingleChildScrollView(
                   child: Column(
                     children: [
-                      Lottie.asset('assets/lotties/notfound.json', width: 200),
+                      // Lottie.asset('assets/lotties/notfound.json', width: 200),
                       Text(
                         "No doctors available at the moment.",
-                        style: AppTextStyles.bodyText.copyWith(color: Colors.grey, fontSize: 16),
+                        style: AppTextStyles.bodyText.copyWith(
+                          color: Colors.grey,
+                          fontSize: 16,
+                        ),
                       ),
                     ],
                   ),
@@ -131,91 +160,156 @@ class _LiveTokenPageState extends State<LiveTokenPage> {
 
             return FutureBuilder<List<Map<String, dynamic>>>(
               // For each liveToken, fetch clinic and doctor specialization
-                future: _fetchDoctorsWithDetails(liveDocs),
-                builder: (context, detailsSnapshot) {
-                  if (!detailsSnapshot.hasData) return const Center(child: LottieLoadingIndicator());
+              future: _fetchDoctorsWithDetails(liveDocs),
+              builder: (context, detailsSnapshot) {
+                if (!detailsSnapshot.hasData)
+                  return const Center(child: LottieLoadingIndicator());
 
-                  List<Map<String, dynamic>> doctorsList = detailsSnapshot.data ?? [];
+                List<Map<String, dynamic>> doctorsList =
+                    detailsSnapshot.data ?? [];
 
-                  // Apply filter logic
-                  final filtered = doctorsList.where((doctor) {
-                    bool matchesSpecialization = selectedSpecialization == "All" || doctor['specialisation'] == selectedSpecialization;
-                    bool matchesClinic = selectedClinic == "All" || doctor['clinicName'] == selectedClinic;
-                    bool matchesSearch = doctor['doctorName'].toLowerCase().contains(searchQuery.toLowerCase());
-                    return matchesSpecialization && matchesClinic && matchesSearch;
-                  }).toList();
+                // Apply filter logic
+                final filtered =
+                    doctorsList.where((doctor) {
+                      bool matchesSpecialization =
+                          selectedSpecialization == "All" ||
+                          doctor['specialisation'] == selectedSpecialization;
+                      bool matchesClinic =
+                          selectedClinic == "All" ||
+                          doctor['clinicName'] == selectedClinic;
+                      bool matchesSearch = doctor['doctorName']
+                          .toLowerCase()
+                          .contains(searchQuery.toLowerCase());
+                      return matchesSpecialization &&
+                          matchesClinic &&
+                          matchesSearch;
+                    }).toList();
 
-                  if (filtered.isEmpty) {
-                    return Center(
-                      child: SingleChildScrollView(
-                        child: Column(
-                          children: [
-                            Lottie.asset('assets/lotties/notfound.json', width: 200),
-                            Text(
-                              "No doctors matching your filters.",
-                              style: AppTextStyles.bodyText.copyWith(color: Colors.grey, fontSize: 16),
+                if (filtered.isEmpty) {
+                  return Center(
+                    child: SingleChildScrollView(
+                      child: Column(
+                        children: [
+                          Lottie.asset(
+                            'assets/lotties/notfound.json',
+                            width: 200,
+                          ),
+                          Text(
+                            "No doctors matching your filters.",
+                            style: AppTextStyles.bodyText.copyWith(
+                              color: Colors.grey,
+                              fontSize: 16,
                             ),
-                          ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }
+
+                return ListView.builder(
+                  itemCount: filtered.length,
+                  itemBuilder: (context, index) {
+                    var doctor = filtered[index];
+                    return GestureDetector(
+                      // onTap: () => Navigator.of(context).push(
+                      // MaterialPageRoute(
+                      //   builder: (context) => CurrentLiveToken(
+                      //     doctorId: doctor['docid'],
+                      //     doctorName: doctor['doctorName'],
+                      //     clinicName: doctor['clinicName'],
+                      //   ),
+                      // ),
+                      // ),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 5.0,
+                          horizontal: 12,
+                        ),
+                        child: Container(
+                          padding: EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.only(
+                                  right: 10,
+                                  top: 10,
+                                ),
+                                child: Image.asset(
+                                  'assets/images/doc.png',
+                                  width: 60,
+                                  height: 60,
+                                ),
+                              ),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      doctor['doctorName'],
+                                      style: AppTextStyles.bodyText.copyWith(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                    SizedBox(height: 5),
+                                    Row(
+                                      children: [
+                                        Icon(
+                                          Icons.local_hospital,
+                                          size: 16,
+                                          color: Colors.grey[700],
+                                        ),
+                                        SizedBox(width: 6),
+                                        Expanded(
+                                          child: Text(
+                                            doctor['clinicName'],
+                                            overflow: TextOverflow.ellipsis,
+                                            style: AppTextStyles.smallBodyText,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    SizedBox(height: 5),
+                                    Row(
+                                      children: [
+                                        Icon(
+                                          Icons.health_and_safety,
+                                          size: 10,
+                                          color: Colors.green,
+                                        ),
+                                        SizedBox(width: 6),
+                                        Expanded(
+                                          child: Text(
+                                            doctor['specialisation'],
+                                            overflow: TextOverflow.ellipsis,
+                                            style: AppTextStyles.caption,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Column(
+                                children: [
+                                  SizedBox(height: 16),
+                                  Icon(Icons.arrow_right),
+                                ],
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     );
-                  }
-
-                  return ListView.builder(
-                    itemCount: filtered.length,
-                    itemBuilder: (context, index) {
-                      var doctor = filtered[index];
-                      return GestureDetector(
-                        // onTap: () => Navigator.of(context).push(
-                          // MaterialPageRoute(
-                          //   builder: (context) => CurrentLiveToken(
-                          //     doctorId: doctor['docid'],
-                          //     doctorName: doctor['doctorName'],
-                          //     clinicName: doctor['clinicName'],
-                          //   ),
-                          // ),
-                        // ),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 5.0, horizontal: 12),
-                          child: Container(
-                            padding: EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Padding(
-                                  padding: const EdgeInsets.only(right: 10, top: 10),
-                                  child: Image.asset('assets/images/doc.png', width: 60, height: 60),
-                                ),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(doctor['doctorName'], style: AppTextStyles.bodyText.copyWith(fontWeight: FontWeight.bold, fontSize: 16)),
-                                      SizedBox(height: 5),
-                                      Row(children: [Icon(Icons.local_hospital, size: 16, color: Colors.grey[700]), SizedBox(width: 6), Expanded(child: Text(doctor['clinicName'], overflow: TextOverflow.ellipsis, style: AppTextStyles.smallBodyText))]),
-                                      SizedBox(height: 5),
-                                      Row(children: [Icon(Icons.health_and_safety, size: 10, color: Colors.green), SizedBox(width: 6), Expanded(child: Text(doctor['specialisation'], overflow: TextOverflow.ellipsis, style: AppTextStyles.caption))]),
-                                    ],
-                                  ),
-                                ),
-                                Column(
-                                  children: [
-                                    SizedBox(height: 16,),
-                                    Icon(Icons.arrow_right),
-                                  ],
-                                )
-                              ],
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  );
-                }
+                  },
+                );
+              },
             );
           },
         ),
@@ -224,7 +318,9 @@ class _LiveTokenPageState extends State<LiveTokenPage> {
   }
 
   // Helper to fetch clinic & specialisation for each live doc
-  Future<List<Map<String, dynamic>>> _fetchDoctorsWithDetails(List<QueryDocumentSnapshot> liveDocs) async {
+  Future<List<Map<String, dynamic>>> _fetchDoctorsWithDetails(
+    List<QueryDocumentSnapshot> liveDocs,
+  ) async {
     List<Map<String, dynamic>> fetchedDoctors = [];
 
     for (var doc in liveDocs) {
@@ -235,18 +331,27 @@ class _LiveTokenPageState extends State<LiveTokenPage> {
       String liveToken = doctorData['token'] ?? '0';
 
       if (clinicId.isNotEmpty && doctorId.isNotEmpty) {
-        DocumentSnapshot clinicSnapshot = await firestore.collection('clinics').doc(clinicId).get();
-        Map<String, dynamic>? clinicData = clinicSnapshot.data() as Map<String, dynamic>?;
+        DocumentSnapshot clinicSnapshot =
+            await firestore.collection('clinics').doc(clinicId).get();
+        Map<String, dynamic>? clinicData =
+            clinicSnapshot.data() as Map<String, dynamic>?;
 
-        DocumentSnapshot doctorSpecSnapshot = await firestore.collection('clinics').doc(clinicId).collection('doctors').doc(doctorId).get();
-        Map<String, dynamic>? doctorSpecData = doctorSpecSnapshot.data() as Map<String, dynamic>?;
+        DocumentSnapshot doctorSpecSnapshot =
+            await firestore
+                .collection('clinics')
+                .doc(clinicId)
+                .collection('doctors')
+                .doc(doctorId)
+                .get();
+        Map<String, dynamic>? doctorSpecData =
+            doctorSpecSnapshot.data() as Map<String, dynamic>?;
 
         fetchedDoctors.add({
           'doctorName': doctorName,
           'clinicName': clinicData?['name'] ?? 'Unknown Clinic',
           'specialisation': doctorSpecData?['specialization'] ?? 'N/A',
           'token': liveToken,
-          'docid': doctorId
+          'docid': doctorId,
         });
       }
     }
@@ -283,36 +388,62 @@ class _LiveTokenPageState extends State<LiveTokenPage> {
                   Center(
                     child: Text(
                       "Filter Options",
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                   SizedBox(height: 20),
-                  Text("Select Specialization", style: TextStyle(fontWeight: FontWeight.w600)),
+                  Text(
+                    "Select Specialization",
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
                   SizedBox(height: 5),
                   StreamBuilder<DocumentSnapshot>(
-                    stream: firestore.collection('settings').doc('specializations').snapshots(),
+                    stream:
+                        firestore
+                            .collection('settings')
+                            .doc('specializations')
+                            .snapshots(),
                     builder: (context, snapshot) {
                       if (!snapshot.hasData || snapshot.data!.data() == null) {
                         return Center(child: CircularProgressIndicator());
                       }
                       var data = snapshot.data!.data() as Map<String, dynamic>;
-                      var specializations = data['specializations'] as List<dynamic>? ?? [];
-                      var specializationOptions = ["All", ...specializations.map((s) => s["name"]).toList()];
+                      var specializations =
+                          data['specializations'] as List<dynamic>? ?? [];
+                      var specializationOptions = [
+                        "All",
+                        ...specializations.map((s) => s["name"]).toList(),
+                      ];
 
                       return DropdownButtonFormField<String>(
-                        value: specializationOptions.contains(selectedSpecialization) ? selectedSpecialization : "All",
+                        value:
+                            specializationOptions.contains(
+                                  selectedSpecialization,
+                                )
+                                ? selectedSpecialization
+                                : "All",
                         decoration: InputDecoration(
                           filled: true,
                           fillColor: Colors.grey[200],
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-                          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: BorderSide.none,
+                          ),
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 10,
+                          ),
                         ),
-                        items: specializationOptions.map((specialization) {
-                          return DropdownMenuItem<String>(
-                            value: specialization,
-                            child: Text(specialization),
-                          );
-                        }).toList(),
+                        items:
+                            specializationOptions.map((specialization) {
+                              return DropdownMenuItem<String>(
+                                value: specialization,
+                                child: Text(specialization),
+                              );
+                            }).toList(),
                         onChanged: (value) {
                           localSetState(() {
                             selectedSpecialization = value!;
@@ -322,28 +453,47 @@ class _LiveTokenPageState extends State<LiveTokenPage> {
                     },
                   ),
                   SizedBox(height: 15),
-                  Text("Select Clinic", style: TextStyle(fontWeight: FontWeight.w600)),
+                  Text(
+                    "Select Clinic",
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
                   SizedBox(height: 5),
                   StreamBuilder<QuerySnapshot>(
                     stream: firestore.collection('clinics').snapshots(),
                     builder: (context, snapshot) {
-                      if (!snapshot.hasData) return Center(child: CircularProgressIndicator());
-                      var clinics = ["All", ...snapshot.data!.docs.map((doc) => doc['name'] as String).toList()];
+                      if (!snapshot.hasData)
+                        return Center(child: CircularProgressIndicator());
+                      var clinics = [
+                        "All",
+                        ...snapshot.data!.docs
+                            .map((doc) => doc['name'] as String)
+                            .toList(),
+                      ];
 
                       return DropdownButtonFormField<String>(
-                        value: clinics.contains(selectedClinic) ? selectedClinic : "All",
+                        value:
+                            clinics.contains(selectedClinic)
+                                ? selectedClinic
+                                : "All",
                         decoration: InputDecoration(
                           filled: true,
                           fillColor: Colors.grey[200],
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-                          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: BorderSide.none,
+                          ),
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 10,
+                          ),
                         ),
-                        items: clinics.map((clinic) {
-                          return DropdownMenuItem<String>(
-                            value: clinic,
-                            child: Text(clinic),
-                          );
-                        }).toList(),
+                        items:
+                            clinics.map((clinic) {
+                              return DropdownMenuItem<String>(
+                                value: clinic,
+                                child: Text(clinic),
+                              );
+                            }).toList(),
                         onChanged: (value) {
                           localSetState(() {
                             selectedClinic = value!;
@@ -365,7 +515,9 @@ class _LiveTokenPageState extends State<LiveTokenPage> {
                         backgroundColor: Colors.black87,
                         foregroundColor: Colors.white,
                         padding: EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
                       ),
                     ),
                   ),

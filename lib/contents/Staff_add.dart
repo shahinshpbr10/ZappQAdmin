@@ -12,7 +12,7 @@ class StaffCreation extends ConsumerStatefulWidget {
   final String clinicId;
   final Map<String, dynamic>? doctorData; // Add optional doctor data
 
-  const StaffCreation( {required this.clinicId, this.doctorData, super.key});
+  const StaffCreation({required this.clinicId, this.doctorData, super.key});
 
   @override
   _AccountCreationState createState() => _AccountCreationState();
@@ -55,7 +55,7 @@ class _AccountCreationState extends ConsumerState<StaffCreation> {
           widget.doctorData!['consultationFees']?.toString() ?? '';
       downloadUrl = widget.doctorData!['profilePhoto'] ?? "";
       _selectedImage = XFile(downloadUrl!);
-      _selectedRole =  widget.doctorData!['role'] ?? "doctor";
+      _selectedRole = widget.doctorData!['role'] ?? "doctor";
 
       // Print to confirm fields are being set
       print('Name: ${_nameController.text}');
@@ -65,22 +65,26 @@ class _AccountCreationState extends ConsumerState<StaffCreation> {
       // Pre-fill consultation times
       if (widget.doctorData!.containsKey('consultationTimes')) {
         final consultationTimes =
-        widget.doctorData!['consultationTimes'] as Map<String, dynamic>;
+            widget.doctorData!['consultationTimes'] as Map<String, dynamic>;
         consultationTimes.forEach((day, sessions) {
           if (sessions != null) {
-            final daySessions =
-            List<Map<String, dynamic>>.from(sessions.values);
-            _daySessions[day] = daySessions.map((session) {
-              return {
-                'from': TimeOfDay(
-                    hour: (session['from'] as double).floor(),
-                    minute: ((session['from'] as double) * 60 % 60).round()),
-                'to': TimeOfDay(
-                    hour: (session['to'] as double).floor(),
-                    minute: ((session['to'] as double) * 60 % 60).round()),
-                'tokenLimit': session['tokenLimit'],
-              };
-            }).toList();
+            final daySessions = List<Map<String, dynamic>>.from(
+              sessions.values,
+            );
+            _daySessions[day] =
+                daySessions.map((session) {
+                  return {
+                    'from': TimeOfDay(
+                      hour: (session['from'] as int).floor(),
+                      minute: ((session['from'] as int) * 60 % 60).round(),
+                    ),
+                    'to': TimeOfDay(
+                      hour: (session['to'] as int).floor(),
+                      minute: ((session['to'] as int) * 60 % 60).round(),
+                    ),
+                    'tokenLimit': session['tokenLimit'],
+                  };
+                }).toList();
           }
         });
       }
@@ -89,7 +93,8 @@ class _AccountCreationState extends ConsumerState<StaffCreation> {
       if (widget.doctorData!.containsKey('availableDays')) {
         // Handle array of days directly without splitting
         _selectedDays = Set<String>.from(
-            widget.doctorData!['availableDays'] as List<dynamic>);
+          widget.doctorData!['availableDays'] as List<dynamic>,
+        );
       }
     } else {
       print('No doctor data provided.');
@@ -107,10 +112,11 @@ class _AccountCreationState extends ConsumerState<StaffCreation> {
 
   Future<void> _fetchSpecializations() async {
     try {
-      final docSnapshot = await FirebaseFirestore.instance
-          .collection('settings')
-          .doc('specializations')
-          .get();
+      final docSnapshot =
+          await FirebaseFirestore.instance
+              .collection('settings')
+              .doc('specializations')
+              .get();
 
       if (docSnapshot.exists) {
         final data = docSnapshot.data();
@@ -118,9 +124,10 @@ class _AccountCreationState extends ConsumerState<StaffCreation> {
           final specializationsArray = data['specializations'] as List;
 
           // Extracting 'name' field from each map in the array
-          final names = specializationsArray
-              .map((item) => item['name'] as String)
-              .toList();
+          final names =
+              specializationsArray
+                  .map((item) => item['name'] as String)
+                  .toList();
 
           setState(() {
             _specializations =
@@ -132,9 +139,18 @@ class _AccountCreationState extends ConsumerState<StaffCreation> {
       print('Error fetching specializations: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-            content: Text('Error fetching specializations from Firestore')),
+          content: Text('Error fetching specializations from Firestore'),
+        ),
       );
     }
+  }
+
+  ///photo URL line compressing
+  String _formatDesc(String text) {
+    if (text.length <= 27) return text;
+    if (text.length <= 54)
+      return '${text.substring(0, 27)}\n${text.substring(27)}';
+    return '${text.substring(0, 27)}\n${text.substring(27, 54)}...';
   }
 
   ///fill consultation quick
@@ -201,19 +217,21 @@ class _AccountCreationState extends ConsumerState<StaffCreation> {
                       },
                     ),
 
-                    ..._daysOfWeek.map((day) => CheckboxListTile(
-                      title: Text(day),
-                      value: tempSelectedDays.contains(day),
-                      onChanged: (selected) {
-                        dialogSetState(() {
-                          if (selected!) {
-                            tempSelectedDays.add(day);
-                          } else {
-                            tempSelectedDays.remove(day);
-                          }
-                        });
-                      },
-                    )),
+                    ..._daysOfWeek.map(
+                      (day) => CheckboxListTile(
+                        title: Text(day),
+                        value: tempSelectedDays.contains(day),
+                        onChanged: (selected) {
+                          dialogSetState(() {
+                            if (selected!) {
+                              tempSelectedDays.add(day);
+                            } else {
+                              tempSelectedDays.remove(day);
+                            }
+                          });
+                        },
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -228,7 +246,6 @@ class _AccountCreationState extends ConsumerState<StaffCreation> {
                         tempToTime != null &&
                         tempTokenLimit != null &&
                         tempSelectedDays.isNotEmpty) {
-
                       // Update the main widget's state
                       setState(() {
                         _quickFromTime = tempFromTime;
@@ -236,11 +253,13 @@ class _AccountCreationState extends ConsumerState<StaffCreation> {
                         _quickTokenLimit = tempTokenLimit;
 
                         for (final day in tempSelectedDays) {
-                          _daySessions[day] = [{
-                            'from': tempFromTime,
-                            'to': tempToTime,
-                            'tokenLimit': tempTokenLimit,
-                          }];
+                          _daySessions[day] = [
+                            {
+                              'from': tempFromTime,
+                              'to': tempToTime,
+                              'tokenLimit': tempTokenLimit,
+                            },
+                          ];
                         }
 
                         _selectedDays.addAll(tempSelectedDays);
@@ -249,7 +268,12 @@ class _AccountCreationState extends ConsumerState<StaffCreation> {
                       Navigator.pop(context);
                     } else {
                       ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Please fill all fields and select at least one day')));
+                        SnackBar(
+                          content: Text(
+                            'Please fill all fields and select at least one day',
+                          ),
+                        ),
+                      );
                     }
                   },
                   child: Text('Apply'),
@@ -272,7 +296,7 @@ class _AccountCreationState extends ConsumerState<StaffCreation> {
         setState(() {
           _selectedImage = pickedImage;
           fileName =
-          "${DateFormat("dd-MM-yy").format(DateTime.now())}_${pickedImage.name}";
+              "${DateFormat("dd-MM-yy").format(DateTime.now())}_${pickedImage.name}";
           downloadUrl = null;
         });
         showAnimatedProgressDialog(context, message: "Compressing Image...");
@@ -281,7 +305,8 @@ class _AccountCreationState extends ConsumerState<StaffCreation> {
         // Check if image needs compression (over 1MB)
         if (imageData.lengthInBytes > 1000000) {
           print(
-              "Image size before compression: ${imageData.lengthInBytes} bytes");
+            "Image size before compression: ${imageData.lengthInBytes} bytes",
+          );
           Uint8List? compressedImage = await compressImage(imageData, context);
           if (compressedImage != null) {
             setState(() {
@@ -302,25 +327,25 @@ class _AccountCreationState extends ConsumerState<StaffCreation> {
 
   final Map<String, List<Map<String, dynamic>>> _daySessions = {
     'Monday': [
-      {'from': null, 'to': null, 'tokenLimit': null}
+      {'from': null, 'to': null, 'tokenLimit': null},
     ],
     'Tuesday': [
-      {'from': null, 'to': null, 'tokenLimit': null}
+      {'from': null, 'to': null, 'tokenLimit': null},
     ],
     'Wednesday': [
-      {'from': null, 'to': null, 'tokenLimit': null}
+      {'from': null, 'to': null, 'tokenLimit': null},
     ],
     'Thursday': [
-      {'from': null, 'to': null, 'tokenLimit': null}
+      {'from': null, 'to': null, 'tokenLimit': null},
     ],
     'Friday': [
-      {'from': null, 'to': null, 'tokenLimit': null}
+      {'from': null, 'to': null, 'tokenLimit': null},
     ],
     'Saturday': [
-      {'from': null, 'to': null, 'tokenLimit': null}
+      {'from': null, 'to': null, 'tokenLimit': null},
     ],
     'Sunday': [
-      {'from': null, 'to': null, 'tokenLimit': null}
+      {'from': null, 'to': null, 'tokenLimit': null},
     ],
   };
 
@@ -331,14 +356,14 @@ class _AccountCreationState extends ConsumerState<StaffCreation> {
     'Thursday',
     'Friday',
     'Saturday',
-    'Sunday'
+    'Sunday',
   ];
 
   Set<String> _selectedDays = {};
 
   final _emailController = TextEditingController();
   final _passwordController =
-  TextEditingController(); // New password controller
+      TextEditingController(); // New password controller
   final _phoneController = TextEditingController();
   final _nameController = TextEditingController();
   final _doctorEmailController = TextEditingController();
@@ -349,11 +374,11 @@ class _AccountCreationState extends ConsumerState<StaffCreation> {
   final _aboutController = TextEditingController();
 
   Widget _buildTextField(
-      String label,
-      TextEditingController controller,
-      IconData icon, {
-        bool obscureText = false,
-      }) {
+    String label,
+    TextEditingController controller,
+    IconData icon, {
+    bool obscureText = false,
+  }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: TextFormField(
@@ -387,57 +412,68 @@ class _AccountCreationState extends ConsumerState<StaffCreation> {
   ///----------------session part--------------///
 
   Widget _buildSessionRow(String day, int sessionIndex) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        ElevatedButton(
-          onPressed: () => _selectTime(context, day, sessionIndex, 'from'),
-          style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent),
-          child: Text(
-            _daySessions[day]![sessionIndex]['from'] == null
-                ? 'From'
-                : _daySessions[day]![sessionIndex]['from']!.format(context),
-          ),
-        ),
-        ElevatedButton(
-          onPressed: () => _selectTime(context, day, sessionIndex, 'to'),
-          style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent),
-          child: Text(
-            _daySessions[day]![sessionIndex]['to'] == null
-                ? 'To'
-                : _daySessions[day]![sessionIndex]['to']!.format(context),
-          ),
-        ),
-        Expanded(
-          child: TextFormField(
-            decoration: const InputDecoration(
-              labelText: 'Token Limit',
-              prefixIcon: Icon(Icons.token, color: Colors.blueAccent),
+        // Row for From and To buttons
+        Row(
+          children: [
+            ElevatedButton(
+              onPressed: () => _selectTime(context, day, sessionIndex, 'from'),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent),
+              child: Text(
+                _daySessions[day]![sessionIndex]['from'] == null
+                    ? 'From'
+                    : _daySessions[day]![sessionIndex]['from']!.format(context),
+              ),
             ),
-            initialValue:
-            _daySessions[day]![sessionIndex]['tokenLimit']?.toString(),
-            onChanged: (value) {
-              setState(() {
-                // Parse the input to an integer, or set to null if it's invalid
-                _daySessions[day]![sessionIndex]['tokenLimit'] =
-                    int.tryParse(value) ?? 0;
-              });
-            },
-            keyboardType: TextInputType.number,
-          ),
+            const SizedBox(width: 10),
+            ElevatedButton(
+              onPressed: () => _selectTime(context, day, sessionIndex, 'to'),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent),
+              child: Text(
+                _daySessions[day]![sessionIndex]['to'] == null
+                    ? 'To'
+                    : _daySessions[day]![sessionIndex]['to']!.format(context),
+              ),
+            ),
+          ],
         ),
-        IconButton(
-          icon: Icon(Icons.delete, color: Colors.redAccent),
-          onPressed: () {
-            setState(() {
-              // Remove the session from _daySessions
-              _daySessions[day]!.removeAt(sessionIndex);
-            });
-          },
+        const SizedBox(height: 8),
+        // Row for token input and delete button
+        Row(
+          children: [
+            Expanded(
+              child: TextFormField(
+                decoration: const InputDecoration(
+                  labelText: 'Token Limit',
+                  prefixIcon: Icon(Icons.token, color: Colors.blueAccent),
+                ),
+                initialValue: _daySessions[day]![sessionIndex]['tokenLimit']?.toString(),
+                onChanged: (value) {
+                  setState(() {
+                    _daySessions[day]![sessionIndex]['tokenLimit'] =
+                        int.tryParse(value) ?? 0;
+                  });
+                },
+                keyboardType: TextInputType.number,
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.delete, color: Colors.redAccent),
+              onPressed: () {
+                setState(() {
+                  _daySessions[day]!.removeAt(sessionIndex);
+                });
+              },
+            ),
+          ],
         ),
+        const Divider(thickness: 1),
       ],
     );
   }
+
 
   List<Widget> _buildDaysCheckboxes() {
     return _daysOfWeek.map((day) {
@@ -454,7 +490,7 @@ class _AccountCreationState extends ConsumerState<StaffCreation> {
                 } else {
                   _selectedDays.remove(day);
                   _daySessions[day] =
-                  []; // Clear sessions for that day if unchecked
+                      []; // Clear sessions for that day if unchecked
                 }
               });
             },
@@ -462,10 +498,12 @@ class _AccountCreationState extends ConsumerState<StaffCreation> {
           if (_selectedDays.contains(day)) ...[
             ...List.generate(
               _daySessions[day]!.length,
-                  (sessionIndex) => Column(
+              (sessionIndex) => Column(
                 children: [
-                  _buildSessionRow(day,
-                      sessionIndex), // Show from/to picker for each session
+                  _buildSessionRow(
+                    day,
+                    sessionIndex,
+                  ), // Show from/to picker for each session
                   const SizedBox(height: 10),
                 ],
               ),
@@ -482,20 +520,27 @@ class _AccountCreationState extends ConsumerState<StaffCreation> {
     return TextButton(
       onPressed: () {
         setState(() {
-          _daySessions[day]!
-              .add({'from': null, 'to': null, 'tokenLimit': null});
+          _daySessions[day]!.add({
+            'from': null,
+            'to': null,
+            'tokenLimit': null,
+          });
         });
       },
       child: Text('Add Session'),
     );
   }
 
-  Future<void> _selectTime(BuildContext context, String day, int sessionIndex,
-      String timeType) async {
+  Future<void> _selectTime(
+    BuildContext context,
+    String day,
+    int sessionIndex,
+    String timeType,
+  ) async {
     final TimeOfDay? picked = await showTimePicker(
       context: context,
       initialTime:
-      _daySessions[day]![sessionIndex][timeType] ?? TimeOfDay.now(),
+          _daySessions[day]![sessionIndex][timeType] ?? TimeOfDay.now(),
     );
     if (picked != null) {
       setState(() {
@@ -509,6 +554,7 @@ class _AccountCreationState extends ConsumerState<StaffCreation> {
       case 'doctor':
         return [
           _buildTextField('Doctor Name', _nameController, Icons.person),
+
           ///Doctor profile system
           Row(
             children: [
@@ -526,43 +572,58 @@ class _AccountCreationState extends ConsumerState<StaffCreation> {
                   ),
                   child: Padding(
                     padding: const EdgeInsets.all(8.0),
-                    child: _selectedImage == null || _selectedImage!.path.isEmpty
-                        ? Icon(
-                      Icons.upload_file_rounded,
-                      color: Colors.blueAccent,
-                      size: 32,
-                    )
-                        : Image.network(_selectedImage!.path),
+                    child:
+                        _selectedImage == null || _selectedImage!.path.isEmpty
+                            ? Icon(
+                              Icons.upload_file_rounded,
+                              color: Colors.blueAccent,
+                              size: 32,
+                            )
+                            : Image.network(_selectedImage!.path),
                   ),
                 ),
               ),
               Text(
-                _selectedImage == null ||  _selectedImage!.path == ""
+                _selectedImage == null || _selectedImage!.path == ""
                     ? "  Upload Doctor profile"
                     : _selectedImage!.name.isNotEmpty
-                    ? "  Selected Image: ${_selectedImage!.name}"
+                    //     ? " Selected Image: \n ${_selectedImage!.name.length >= 28 ?
+                    // _selectedImage!.name.replaceFirstMapped(RegExp(r'^(.{28})'),
+                    //         (match) => '${match.group(1)}\n') : _selectedImage!.name}"
+                    ? _formatDesc(_selectedImage!.name)
                     : "",
-                style:
-                TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  color: Colors.black,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ],
           ),
           _buildTextField('Doctor Email', _emailController, Icons.email),
           _buildTextField(
-              'Phone Number', _phoneController, Icons.phone_iphone_outlined),
+            'Phone Number',
+            _phoneController,
+            Icons.phone_iphone_outlined,
+          ),
           _buildSpecializationDropdown(),
           _buildTextField('Experience', _experienceController, Icons.timeline),
-          _buildTextField('License Number', _licenseNumberController,
-              Icons.card_membership),
           _buildTextField(
-              'Consultation Fees', _consultationFeesController, Icons.money),
+            'License Number',
+            _licenseNumberController,
+            Icons.card_membership,
+          ),
+          _buildTextField(
+            'Consultation Fees',
+            _consultationFeesController,
+            Icons.money,
+          ),
           _buildTextField('Description', _aboutController, Icons.description),
           const SizedBox(height: 10),
           _buildSectionTitle('Consultation Times'),
           Align(
             alignment: Alignment.centerRight,
             child: TextButton.icon(
-              onPressed: (){
+              onPressed: () {
                 _showQuickAddDialog();
               },
               icon: Icon(Icons.add, color: Colors.blue),
@@ -612,32 +673,46 @@ class _AccountCreationState extends ConsumerState<StaffCreation> {
 
   Widget _buildSpecializationDropdown() {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
       child: DropdownButtonFormField<String>(
+        isDense: true,
         decoration: InputDecoration(
-          prefixIcon: Icon(Icons.local_hospital, color: Colors.blueAccent),
+          prefixIcon: Icon(
+            Icons.local_hospital,
+            color: Colors.blueAccent,
+            size: 20,
+          ),
           labelText: 'Specialization',
-          labelStyle: const TextStyle(color: Colors.grey),
+          labelStyle: const TextStyle(fontSize: 12, color: Colors.grey),
           filled: true,
           fillColor: Colors.grey[200],
+          contentPadding: const EdgeInsets.symmetric(
+            vertical: 10,
+            horizontal: 12,
+          ),
           focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: Colors.blueAccent, width: 2),
+            borderRadius: BorderRadius.circular(8),
+            borderSide: const BorderSide(color: Colors.blueAccent, width: 1.5),
           ),
           enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(8),
             borderSide: const BorderSide(color: Colors.grey, width: 1),
           ),
         ),
-        value: _specializationController.text.isNotEmpty
-            ? _specializationController.text
-            : null,
-        items: _specializations.map((String specialization) {
-          return DropdownMenuItem<String>(
-            value: specialization,
-            child: Text(specialization),
-          );
-        }).toList(),
+        value:
+            _specializationController.text.isNotEmpty
+                ? _specializationController.text
+                : null,
+        items:
+            _specializations.map((String specialization) {
+              return DropdownMenuItem<String>(
+                value: specialization,
+                child: Text(
+                  specialization,
+                  style: const TextStyle(fontSize: 12),
+                ),
+              );
+            }).toList(),
         onChanged: (value) {
           setState(() {
             _specializationController.text = value!;
@@ -687,8 +762,9 @@ class _AccountCreationState extends ConsumerState<StaffCreation> {
 
     try {
       showAnimatedProgressDialog(context, message: "Submitting form...");
-      final clinicDocRef =
-      FirebaseFirestore.instance.collection('clinics').doc(widget.clinicId);
+      final clinicDocRef = FirebaseFirestore.instance
+          .collection('clinics')
+          .doc(widget.clinicId);
       final clinicSnapshot = await clinicDocRef.get();
 
       if (!clinicSnapshot.exists) {
@@ -698,10 +774,11 @@ class _AccountCreationState extends ConsumerState<StaffCreation> {
 
       final clinicData = clinicSnapshot.data() as Map<String, dynamic>;
 
-      QuerySnapshot existingStaffSnapshot = await clinicDocRef
-          .collection("${_selectedRole}s")
-          .where('email', isEqualTo: _emailController.text.trim())
-          .get();
+      QuerySnapshot existingStaffSnapshot =
+          await clinicDocRef
+              .collection("${_selectedRole}s")
+              .where('email', isEqualTo: _emailController.text.trim())
+              .get();
 
       String staffId;
 
@@ -714,7 +791,7 @@ class _AccountCreationState extends ConsumerState<StaffCreation> {
       }
 
       Map<String, Map<String, dynamic>?> consultationTimes =
-      _prepareConsultationTimes();
+          _prepareConsultationTimes();
 
       final Map<String, dynamic> staffDetails = {
         'staffId': staffId,
@@ -730,9 +807,9 @@ class _AccountCreationState extends ConsumerState<StaffCreation> {
         if (_selectedImage != null && _selectedImage!.path != "") {
           try {
             // Firebase Storage reference
-            final storageRef = FirebaseStorage.instance
-                .ref()
-                .child('doctor_profile/$fileName');
+            final storageRef = FirebaseStorage.instance.ref().child(
+              'doctor_profile/$fileName',
+            );
             UploadTask uploadTask = storageRef.putData(imageData);
 
             TaskSnapshot taskSnapshot = await uploadTask;
@@ -756,14 +833,13 @@ class _AccountCreationState extends ConsumerState<StaffCreation> {
           'consultationFees': _consultationFeesController.text.trim(),
           'consultations': 0,
           'consultationTimes': consultationTimes,
-          'profilePhoto':  downloadUrl ?? widget.doctorData?['profilePhoto'] ?? "",
+          'profilePhoto':
+              downloadUrl ?? widget.doctorData?['profilePhoto'] ?? "",
         });
       }
 
       if (_selectedRole == 'nurse') {
-        staffDetails.addAll({
-          'availableDays': _convertAvailableDaysToArray(),
-        });
+        staffDetails.addAll({'availableDays': _convertAvailableDaysToArray()});
       }
 
       // Receptionist role specific fields
@@ -791,17 +867,16 @@ class _AccountCreationState extends ConsumerState<StaffCreation> {
             ? 'doctors'
             : _selectedRole == 'receptionist'
             ? 'receptionists' // Separate array for receptionists
-            : 'staffs':
-        FieldValue.arrayUnion([_emailController.text.trim()])
+            : 'staffs': FieldValue.arrayUnion([_emailController.text.trim()]),
       });
       Navigator.pop(context);
       _showSuccessDialog();
       _clearFormFields();
     } catch (e) {
       Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
     }
   }
 
@@ -812,7 +887,8 @@ class _AccountCreationState extends ConsumerState<StaffCreation> {
         return AlertDialog(
           title: const Text('Success'),
           content: Text(
-              'The ${_selectedRole[0].toUpperCase() + _selectedRole.substring(1)} was created successfully!'),
+            'The ${_selectedRole[0].toUpperCase() + _selectedRole.substring(1)} was created successfully!',
+          ),
           actions: [
             TextButton(
               onPressed: () {
@@ -831,8 +907,10 @@ class _AccountCreationState extends ConsumerState<StaffCreation> {
     int minutes = time.minute;
 
     // Convert minutes to a 2-digit format representing a percentage of an hour
-    String minuteString =
-    ((minutes * 100) / 60).round().toString().padLeft(2, '0');
+    String minuteString = ((minutes * 100) / 60).round().toString().padLeft(
+      2,
+      '0',
+    );
 
     // Combine hours and formatted minutes as a string, then parse it back to double
     return double.parse('$hours.$minuteString');
@@ -903,18 +981,19 @@ class _AccountCreationState extends ConsumerState<StaffCreation> {
                         _selectedRole = value!;
                       });
                     },
-                    items: _roles.map((role) {
-                      return DropdownMenuItem<String>(
-                        value: role,
-                        child: Text(
-                          role[0].toUpperCase() + role.substring(1),
-                          style: const TextStyle(
-                            color: Colors.black,
-                            fontSize: 16,
-                          ),
-                        ),
-                      );
-                    }).toList(),
+                    items:
+                        _roles.map((role) {
+                          return DropdownMenuItem<String>(
+                            value: role,
+                            child: Text(
+                              role[0].toUpperCase() + role.substring(1),
+                              style: const TextStyle(
+                                color: Colors.black,
+                                fontSize: 16,
+                              ),
+                            ),
+                          );
+                        }).toList(),
                   ),
                 ),
               ),
@@ -959,7 +1038,9 @@ class _AccountCreationState extends ConsumerState<StaffCreation> {
 }
 
 Future<Uint8List?> compressImage(
-    Uint8List imageBytes, BuildContext context) async {
+  Uint8List imageBytes,
+  BuildContext context,
+) async {
   try {
     // Check if compression is needed
     if (imageBytes.lengthInBytes <= 1000000) {
@@ -984,8 +1065,9 @@ Future<Uint8List?> compressImage(
     int quality = 80;
 
     // First try just compressing without resizing
-    Uint8List compressedImageBytes =
-    Uint8List.fromList(img.encodeJpg(image, quality: quality));
+    Uint8List compressedImageBytes = Uint8List.fromList(
+      img.encodeJpg(image, quality: quality),
+    );
 
     // If still too large, resize and compress
     if (compressedImageBytes.lengthInBytes > targetSize) {
@@ -998,10 +1080,14 @@ Future<Uint8List?> compressImage(
         int newWidth = (image.width * scaleFactor).round();
         int newHeight = (image.height * scaleFactor).round();
 
-        img.Image resizedImage =
-        img.copyResize(image, width: newWidth, height: newHeight);
-        compressedImageBytes =
-            Uint8List.fromList(img.encodeJpg(resizedImage, quality: quality));
+        img.Image resizedImage = img.copyResize(
+          image,
+          width: newWidth,
+          height: newHeight,
+        );
+        compressedImageBytes = Uint8List.fromList(
+          img.encodeJpg(resizedImage, quality: quality),
+        );
 
         // If still too large, reduce scale factor
         if (compressedImageBytes.lengthInBytes > targetSize) {
@@ -1014,22 +1100,29 @@ Future<Uint8List?> compressImage(
 
     // Close dialog and show success message
     Navigator.pop(context);
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
         content: Text(
-            'Image compressed from ${(imageBytes.lengthInBytes / 1000000).toStringAsFixed(2)}MB to ${(compressedImageBytes.lengthInBytes / 1000000).toStringAsFixed(2)}MB')));
+          'Image compressed from ${(imageBytes.lengthInBytes / 1000000).toStringAsFixed(2)}MB to ${(compressedImageBytes.lengthInBytes / 1000000).toStringAsFixed(2)}MB',
+        ),
+      ),
+    );
 
     return compressedImageBytes;
   } catch (e) {
     print("Error compressing image: $e");
     Navigator.pop(context);
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text('Failed to compress image: $e')));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('Failed to compress image: $e')));
     return null;
   }
 }
 
-void showAnimatedProgressDialog(BuildContext context,
-    {String message = 'Loading...'}) {
+void showAnimatedProgressDialog(
+  BuildContext context, {
+  String message = 'Loading...',
+}) {
   showDialog(
     context: context,
     barrierDismissible: false,
@@ -1037,9 +1130,7 @@ void showAnimatedProgressDialog(BuildContext context,
       return Dialog(
         backgroundColor: Colors.white,
         elevation: 8,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: Container(
           padding: const EdgeInsets.all(20.0),
           decoration: BoxDecoration(
@@ -1070,8 +1161,9 @@ void showAnimatedProgressDialog(BuildContext context,
                     ),
                     Center(
                       child: CircularProgressIndicator(
-                        valueColor:
-                        AlwaysStoppedAnimation<Color>(Colors.blueAccent),
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          Colors.blueAccent,
+                        ),
                         strokeWidth: 5,
                       ),
                     ),
