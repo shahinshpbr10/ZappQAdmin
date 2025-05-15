@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'clinic_list.dart';
-import 'main.dart';
+import 'clinic_list.dart'; // Make sure this file contains the updated ClinicListWidget
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -12,17 +11,18 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
+
   @override
   Widget build(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
+
     return Scaffold(
       body: Padding(
-        padding:  EdgeInsets.all(width*0.03),
+        padding: EdgeInsets.all(width * 0.03),
         child: SingleChildScrollView(
           child: Column(
             children: [
-              SizedBox(
-                height: 20,
-              ),
+              const SizedBox(height: 20),
               Padding(
                 padding: const EdgeInsets.all(16),
                 child: TextField(
@@ -33,7 +33,7 @@ class _HomePageState extends State<HomePage> {
                     });
                   },
                   decoration: InputDecoration(
-                    hintText: 'Search...',
+                    hintText: 'Search clinics...',
                     prefixIcon: const Icon(Icons.search),
                     filled: true,
                     fillColor: Colors.grey[200],
@@ -45,12 +45,10 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ),
               ),
-              SizedBox(
-                height: 20,
-              ),
+              const SizedBox(height: 20),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: ClinicListWidget(),
+                child: ClinicListWidget(searchQuery: _searchQuery),
               ),
             ],
           ),

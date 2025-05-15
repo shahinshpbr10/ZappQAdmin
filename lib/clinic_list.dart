@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart'; // Import FirebaseAuth
+import 'package:lottie/lottie.dart';
 import 'package:zappq_admin_app/common/text_styles.dart';
 
 import 'common/colors.dart';
@@ -197,7 +198,9 @@ class _AnimatedClinicCardHomeState extends State<AnimatedClinicCardHome>
 
 // --- Main Widget (Converted to StatefulWidget) ---
 class ClinicListWidget extends StatefulWidget {
-  const ClinicListWidget({super.key});
+  final String searchQuery;
+
+  const ClinicListWidget({super.key, required this.searchQuery});
 
   @override
   _ClinicListWidgetState createState() => _ClinicListWidgetState();
@@ -311,6 +314,7 @@ class _ClinicListWidgetState extends State<ClinicListWidget> {
 
           // Clinic Cards StreamBuilder
           StreamBuilder<QuerySnapshot>(
+
             stream: FirebaseFirestore.instance
                 .collection('clinics')
                 .snapshots(),
@@ -329,16 +333,29 @@ class _ClinicListWidgetState extends State<ClinicListWidget> {
                 );
               }
 
-              final clinicDocs = snapshot.data?.docs ?? [];
+              final clinicDocs = (snapshot.data?.docs ?? []).where((doc) {
+                final data = doc.data() as Map<String, dynamic>;
+                final clinicName = (data['name'] ?? '').toString().toLowerCase();
+                return clinicName.contains(widget.searchQuery.toLowerCase());
+              }).toList();
 
               if (clinicDocs.isEmpty) {
                 return Center(
-                  child: Text(
-                    'No clinics available',
-                    style: AppTextStyles.bodyText.copyWith(fontSize: 16),
+                  child: Column(
+                    children: [
+                      Lottie.asset('assets/lotties/notfound.json', width: 400),
+                      Text(
+                        "No clinics available",
+                        style: AppTextStyles.bodyText.copyWith(
+                          color: Colors.black,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ],
                   ),
                 );
               }
+
 
               return Column(
                 children: clinicDocs.map((doc) {

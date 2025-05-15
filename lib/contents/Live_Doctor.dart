@@ -4,6 +4,7 @@ import 'package:lottie/lottie.dart';
 import 'package:zappq_admin_app/common/text_styles.dart';
 import '../common/colors.dart';
 import '../loading_animation.dart';
+import 'Live_TokenShow.dart';
 
 class LiveTokenPage extends StatefulWidget {
   final String clinicId;
@@ -19,6 +20,24 @@ class _LiveTokenPageState extends State<LiveTokenPage> {
   String searchQuery = "";
   String selectedSpecialization = "All";
   String selectedClinic = "All";
+  bool showButtons = false;
+  String? selectedDateInfo;
+
+  void _pickDate(String source) async {
+    DateTime? pickedDate = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+    );
+
+    if (pickedDate != null) {
+      setState(() {
+        selectedDateInfo =
+        "$source Selected: ${pickedDate.day}/${pickedDate.month}/${pickedDate.year}";
+      });
+    }
+  }
 
   // Filtering helpers
   void updateSearchQuery(String query) {
@@ -47,6 +66,7 @@ class _LiveTokenPageState extends State<LiveTokenPage> {
     DateTime startOfDay = DateTime.utc(now.year, now.month, now.day, 0, 0, 0);
     DateTime endOfDay = DateTime.utc(now.year, now.month, now.day, 23, 59, 59);
 
+
     // Listen to live tokens
     Stream<QuerySnapshot> liveTokensStream =
         firestore
@@ -59,8 +79,11 @@ class _LiveTokenPageState extends State<LiveTokenPage> {
               "createdAt",
               isLessThanOrEqualTo: Timestamp.fromDate(endOfDay),
             )
+            .where(
+              "clinicName", // Assuming this is the correct field in your Firestore
+              isEqualTo: widget.clinicId,
+            )
             .snapshots();
-
 
     return Scaffold(
       backgroundColor: AppColors.scaffoldbackgroundcolour,
@@ -122,6 +145,40 @@ class _LiveTokenPageState extends State<LiveTokenPage> {
           ],
         ),
       ),
+      floatingActionButton: Column(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          if (showButtons) ...[
+            FloatingActionButton.extended(
+              heroTag: "btn1",
+              onPressed: () => _pickDate("Live Doctor"),
+              label: Text("Live Doctor",style: TextStyle(color: AppColors.white)),
+              icon: Icon(Icons.local_hospital,color: AppColors.white,),
+              backgroundColor: AppColors.lightpacha,
+            ),
+            SizedBox(height: 10),
+            FloatingActionButton.extended(
+              heroTag: "btn2",
+              onPressed: () => _pickDate("Slow Move"),
+              label: Text("Slow Move",style: TextStyle(color: AppColors.white)),
+              icon: Icon(Icons.directions_walk,color: AppColors.white,),
+              backgroundColor: AppColors.lightpacha,
+            ),
+            SizedBox(height: 10),
+          ],
+          FloatingActionButton(
+            heroTag: "mainFAB",
+            onPressed: () {
+              setState(() {
+                showButtons = !showButtons;
+              });
+            },
+            backgroundColor: AppColors.lightpacha,
+            child: showButtons ?Icon( Icons.close ):Text("Report",style: TextStyle(color: AppColors.white),),
+          ),
+        ],
+      ),
+
       body: Padding(
         padding: const EdgeInsets.symmetric(vertical: 9.0),
         child: StreamBuilder<QuerySnapshot>(
@@ -142,7 +199,7 @@ class _LiveTokenPageState extends State<LiveTokenPage> {
                 child: SingleChildScrollView(
                   child: Column(
                     children: [
-                      // Lottie.asset('assets/lotties/notfound.json', width: 200),
+                      Lottie.asset('assets/lotties/notfound.json', width: 200),
                       Text(
                         "No doctors available at the moment.",
                         style: AppTextStyles.bodyText.copyWith(
@@ -212,15 +269,19 @@ class _LiveTokenPageState extends State<LiveTokenPage> {
                   itemBuilder: (context, index) {
                     var doctor = filtered[index];
                     return GestureDetector(
-                      // onTap: () => Navigator.of(context).push(
-                      // MaterialPageRoute(
-                      //   builder: (context) => CurrentLiveToken(
-                      //     doctorId: doctor['docid'],
-                      //     doctorName: doctor['doctorName'],
-                      //     clinicName: doctor['clinicName'],
-                      //   ),
-                      // ),
-                      // ),
+                      onTap:
+                          () => Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder:
+                                  (context) => CurrentLiveToken(
+                                    doctorId: doctor['docid'],
+                                    doctorName: doctor['doctorName'],
+                                    clinicName: doctor['clinicName'],
+                                    specialisation: doctor['specialisation']??'',
+                                    profilePhoto: doctor['profilePhoto']??'',
+                                  ),
+                            ),
+                          ),
                       child: Padding(
                         padding: const EdgeInsets.symmetric(
                           vertical: 5.0,
@@ -242,6 +303,7 @@ class _LiveTokenPageState extends State<LiveTokenPage> {
                                 ),
                                 child: Image.asset(
                                   'assets/images/doc.png',
+                                  // doctor['profilePhoto']?doctor['profilePhoto']:'assets/images/doc.png',
                                   width: 60,
                                   height: 60,
                                 ),

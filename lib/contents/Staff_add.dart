@@ -75,12 +75,12 @@ class _AccountCreationState extends ConsumerState<StaffCreation> {
                 daySessions.map((session) {
                   return {
                     'from': TimeOfDay(
-                      hour: (session['from'] as int).floor(),
-                      minute: ((session['from'] as int) * 60 % 60).round(),
+                      hour: (session['from'] ).floor(),
+                      minute: ((session['from'] ) * 60 % 60).round(),
                     ),
                     'to': TimeOfDay(
-                      hour: (session['to'] as int).floor(),
-                      minute: ((session['to'] as int) * 60 % 60).round(),
+                      hour: (session['to'] ).floor(),
+                      minute: ((session['to'] ) * 60 % 60).round(),
                     ),
                     'tokenLimit': session['tokenLimit'],
                   };
@@ -751,14 +751,14 @@ class _AccountCreationState extends ConsumerState<StaffCreation> {
   Future<void> _submitForm() async {
     if (!_formKey.currentState!.validate()) return;
 
-    User? currentUser = FirebaseAuth.instance.currentUser;
+    // User? currentUser = FirebaseAuth.instance.currentUser;
 
-    if (currentUser == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No user is currently signed in.')),
-      );
-      return;
-    }
+    // if (currentUser == null) {
+    //   ScaffoldMessenger.of(context).showSnackBar(
+    //     const SnackBar(content: Text('No user is currently signed in.')),
+    //   );
+    //   return;
+    // }
 
     try {
       showAnimatedProgressDialog(context, message: "Submitting form...");
