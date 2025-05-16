@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:zappq_admin_app/common/colors.dart';
 import 'clinic_list.dart'; // Make sure this file contains the updated ClinicListWidget
 
 class HomePage extends StatefulWidget {
@@ -17,6 +18,7 @@ class _HomePageState extends State<HomePage> {
     final width = MediaQuery.of(context).size.width;
 
     return Scaffold(
+      backgroundColor: AppColors.lightpacha,
       body: Padding(
         padding: EdgeInsets.all(width * 0.03),
         child: SingleChildScrollView(

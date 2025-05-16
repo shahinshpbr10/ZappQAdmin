@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
+import 'package:zappq_admin_app/common/colors.dart';
 
 class BookingsPage extends StatefulWidget {
   final String clinicid;
@@ -165,8 +166,12 @@ class _BookingsPageState extends State<BookingsPage> {
           child: Icon(Icons.picture_as_pdf),
         ),
         appBar: AppBar(
-          title: Text('Clinic Bookings'),
+          centerTitle: true,
+          backgroundColor: AppColors.lightpacha,
+          title: Text('Clinic Bookings',style: TextStyle(color: AppColors.white),),
           bottom: TabBar(
+            labelColor: AppColors.white, // Color for selected tab
+            unselectedLabelColor: AppColors.white, // Color for unselected tabs
             onTap: (index) {
               setState(() => currentTabIndex = index);
             },

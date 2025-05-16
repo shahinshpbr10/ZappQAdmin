@@ -304,7 +304,8 @@ class _ClinicListWidgetState extends State<ClinicListWidget> {
       width: double.infinity,
       padding: EdgeInsets.all(screenWidth * 0.05),
       decoration: BoxDecoration(
-        color: AppColors.scaffoldbackgroundcolour.withOpacity(0.5),
+        // color: AppColors.scaffoldbackgroundcolour.withOpacity(0.5),
+        color: AppColors.lightpacha,
         borderRadius: BorderRadius.circular(20),
       ),
       child: Column(

@@ -4,10 +4,10 @@ import 'package:zappq_admin_app/common/colors.dart';
 import 'package:zappq_admin_app/contents/Account_Creation.dart';
 import 'package:zappq_admin_app/contents/Bookings.dart';
 import 'package:zappq_admin_app/contents/Staff_add.dart';
-import 'package:zappq_admin_app/contents/Live_Doctor.dart';
 import 'package:zappq_admin_app/contents/doctor_view.dart';
 import 'package:zappq_admin_app/main.dart';
 import 'package:zappq_admin_app/common/text_styles.dart';
+import 'LIve/livelisting.dart';
 import 'contents/Hospital_Edit.dart';
 
 class ClinicDetailsPage extends StatefulWidget {
@@ -47,6 +47,8 @@ class _ClinicDetailsPageState extends State<ClinicDetailsPage> {
 
     contents = [
       LiveTokenPage(clinicId: widget.ClinicId,),
+      // LiveTokenPage(),
+      // LiveHospital(),
       BookingsPage(clinicid:widget.ClinicId ),
       DoctorView(clinicId: widget.ClinicId),
       StaffCreation(clinicId: widget.ClinicId),
