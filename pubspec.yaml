@@ -58,6 +58,10 @@ dependencies:
   super_tooltip: ^2.0.9
   cached_network_image: ^3.4.1
   shimmer: ^3.0.0
+  permission_handler: ^11.3.0
+  file_picker: ^10.1.9
+  firebase_messaging: ^15.2.6
+  awesome_notifications: ^0.10.1
 
 
 flutter_icons:
