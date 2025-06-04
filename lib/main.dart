@@ -29,6 +29,24 @@ void main() async {
   // Subscribe this device to "admin" topic
   FirebaseMessaging.instance.subscribeToTopic('admin');
 
+  await AwesomeNotifications().requestPermissionToSendNotifications();
+
+  NotificationSettings settings = await FirebaseMessaging.instance.requestPermission(
+    alert: true,
+    badge: true,
+    sound: true,
+  );
+
+  if (settings.authorizationStatus == AuthorizationStatus.authorized) {
+    debugPrint('✅ User granted FCM notification permission');
+  } else {
+    debugPrint('❌ User declined or has not accepted permission');
+  }
+
+  // 📌 Subscribe this device to admin topic
+  FirebaseMessaging.instance.subscribeToTopic('admin');
+
+
   // Initialize Awesome Notifications
   AwesomeNotifications().initialize(
     null,

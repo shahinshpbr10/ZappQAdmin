@@ -16,6 +16,98 @@ class BookingsPage extends StatefulWidget {
 
 class _BookingsPageState extends State<BookingsPage> {
   TextEditingController searchController = TextEditingController();
+  // Store controllers for each booking
+  Map<String, TextEditingController> tokenControllers = {};
+
+  // Get the controller for a specific booking
+  TextEditingController _getController(String bookingId) {
+    if (!tokenControllers.containsKey(bookingId)) {
+      tokenControllers[bookingId] = TextEditingController();
+    }
+    return tokenControllers[bookingId]!;
+  }  String? currentClinicId;
+  String uid = '';
+  String? bookingDate;
+@override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    currentClinicId=widget.clinicid;
+  }
+
+  Future<void> _updateToken(String bookingId, int token) async {
+    if (currentClinicId == null) return;
+
+    try {
+      await FirebaseFirestore.instance
+          .collection('clinics')
+          .doc(currentClinicId)
+          .collection('bookings')
+          .doc(bookingId)
+          .update({'token': token});
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Token $token assigned successfully.'),backgroundColor: AppColors.lightpacha,),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to assign token: $e'),backgroundColor: Colors.red,));
+    }
+  }
+
+  Future<void> updateTokenForAppointment(
+    String bookingId,
+    String uid,
+    int newTokenNumber,
+    String formattedDate,
+    String doctorId,
+  ) async {
+    if (currentClinicId == null || doctorId.isEmpty || uid.isEmpty) {
+      print(
+        "❌ Error: Missing required data - clinicId: $currentClinicId, doctorId: $doctorId, uid: $uid",
+      );
+      return;
+    }
+
+    try {
+      // Step 1: Update Token in Bookings Collection
+      DocumentReference bookingRef = FirebaseFirestore.instance
+          .collection('clinics')
+          .doc(currentClinicId)
+          .collection('bookings')
+          .doc(bookingId);
+
+      await bookingRef.update({'token': newTokenNumber});
+      print("✅ Token updated in bookings for UID: $uid");
+
+      // Step 2: Update Token in Doctor's liveTokenDetails Collection
+      DocumentReference tokenDocRef = FirebaseFirestore.instance
+          .collection('clinics')
+          .doc(currentClinicId)
+          .collection('doctors')
+          .doc(doctorId)
+          .collection('liveTokenDetails')
+          .doc(formattedDate);
+
+      DocumentSnapshot docSnapshot = await tokenDocRef.get();
+
+      if (!docSnapshot.exists) {
+        print("🆕 Creating new token entry for Date: $formattedDate");
+        await tokenDocRef.set({
+          uid: {'token': newTokenNumber},
+        });
+      } else {
+        print("🔄 Updating existing token for UID: $uid");
+        await tokenDocRef.update({'$uid.token': newTokenNumber});
+      }
+
+      print("✅ Token update successful for UID: $uid on $formattedDate");
+    } catch (e) {
+      print("❌ Error updating token: $e");
+    }
+  }
+
   String searchQuery = "";
   DateTime? selectedDate;
 
@@ -49,8 +141,13 @@ class _BookingsPageState extends State<BookingsPage> {
   DateTime? fromDate;
   DateTime? toDate;
 
-// Generate PDF function with clinic name
-  Future<void> generatePdf(List<DocumentSnapshot> filteredBookings, String clinicName, DateTime fromDate, DateTime toDate) async {
+  // Generate PDF function with clinic name
+  Future<void> generatePdf(
+    List<DocumentSnapshot> filteredBookings,
+    String clinicName,
+    DateTime fromDate,
+    DateTime toDate,
+  ) async {
     final pdf = pw.Document();
 
     pdf.addPage(
@@ -80,15 +177,16 @@ class _BookingsPageState extends State<BookingsPage> {
                   'Doctor',
                   'Phone Number',
                 ],
-                data: filteredBookings.map((doc) {
-                  final data = doc.data() as Map<String, dynamic>;
-                  return [
-                    data['patientName'] ?? '',
-                    data['bookingDate'] ?? '',
-                    data['doctorName'] ?? '',
-                    data['phoneNumber'] ?? '',
-                  ];
-                }).toList(),
+                data:
+                    filteredBookings.map((doc) {
+                      final data = doc.data() as Map<String, dynamic>;
+                      return [
+                        data['patientName'] ?? '',
+                        data['bookingDate'] ?? '',
+                        data['doctorName'] ?? '',
+                        data['phoneNumber'] ?? '',
+                      ];
+                    }).toList(),
               ),
             ],
           );
@@ -96,10 +194,12 @@ class _BookingsPageState extends State<BookingsPage> {
       ),
     );
 
-    await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => pdf.save());
+    await Printing.layoutPdf(
+      onLayout: (PdfPageFormat format) async => pdf.save(),
+    );
   }
 
-// Select from and to date, then generate report
+  // Select from and to date, then generate report
   Future<void> _selectDateRangeAndGenerateReport(BuildContext context) async {
     DateTimeRange? pickedRange = await showDateRangePicker(
       context: context,
@@ -112,21 +212,32 @@ class _BookingsPageState extends State<BookingsPage> {
       final toDate = pickedRange.end;
 
       // Fetch clinic name
-      DocumentSnapshot clinicDoc = await FirebaseFirestore.instance
-          .collection('clinics')
-          .doc(widget.clinicid)
-          .get();
+      DocumentSnapshot clinicDoc =
+          await FirebaseFirestore.instance
+              .collection('clinics')
+              .doc(widget.clinicid)
+              .get();
 
-      String clinicName = (clinicDoc.data() as Map<String, dynamic>)['clinicName'] ?? 'Clinic';
+      String clinicName =
+          (clinicDoc.data() as Map<String, dynamic>)['clinicName'] ?? 'Clinic';
 
       // Fetch bookings within date range
-      QuerySnapshot querySnapshot = await FirebaseFirestore.instance
-          .collection('clinics')
-          .doc(widget.clinicid)
-          .collection('bookings')
-          .where('bookingDate', isGreaterThanOrEqualTo: DateFormat('yyyy-MM-dd').format(fromDate))
-          .where('bookingDate', isLessThanOrEqualTo: DateFormat('yyyy-MM-dd').format(toDate))
-          .get();
+      QuerySnapshot querySnapshot =
+          await FirebaseFirestore.instance
+              .collection('clinics')
+              .doc(widget.clinicid)
+              .collection('bookings')
+              .where(
+                'bookingDate',
+                isGreaterThanOrEqualTo: DateFormat(
+                  'yyyy-MM-dd',
+                ).format(fromDate),
+              )
+              .where(
+                'bookingDate',
+                isLessThanOrEqualTo: DateFormat('yyyy-MM-dd').format(toDate),
+              )
+              .get();
 
       List<DocumentSnapshot> filteredBookings = querySnapshot.docs;
 
@@ -154,6 +265,100 @@ class _BookingsPageState extends State<BookingsPage> {
     }
   }
 
+  Widget tokenAssign(Map<String, dynamic> appointment) {
+    final hasToken = appointment['token'] > 0;
+    final buttonColor = hasToken ? Colors.orange : Colors.blue;
+    final buttonText = hasToken ? 'Reassign' : 'Assign';
+
+    // Get the controller dynamically for this specific booking
+    final tokenController = _getController(appointment['bookingId']);
+
+    // Null checks for the fields you're using
+    final bookingId = appointment['bookingId'] ?? '';
+    final date = appointment['bookingDate'] ?? '';  // Ensure date is not null or empty
+    final doctorId = appointment['doctorId'] ?? '';
+
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        if (hasToken)
+          Text(
+            'Current Token: ${appointment['token']}',
+            style: TextStyle(
+              color: AppColors.black,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        const SizedBox(width: 8),
+        Row(
+          children: [
+            Expanded(
+              child: TextField(
+                controller: tokenController,
+                decoration: InputDecoration(
+                  hintText: 'New Token',
+                  isDense: true,
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+                keyboardType: TextInputType.number,
+                style: TextStyle(color: AppColors.black),
+              ),
+            ),
+            const SizedBox(width: 8),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: buttonColor,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              onPressed: () {
+                final token = int.tryParse(tokenController.text);
+                if (token != null && bookingId.isNotEmpty && date.isNotEmpty && doctorId.isNotEmpty) {
+                  _updateToken(appointment['bookingId'], token);
+                  updateTokenForAppointment(
+                    bookingId,
+                    uid,
+                    token,
+                    date,
+                    doctorId,
+                  );
+
+                  tokenController.clear();
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Please enter a valid token number and make sure all data is correct'),
+                    ),
+                  );
+                }
+              },
+              child: Text(buttonText),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  @override
+  void dispose() {
+    // Dispose of all controllers
+    tokenControllers.values.forEach((controller) {
+      controller.dispose();
+    });
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
@@ -161,14 +366,17 @@ class _BookingsPageState extends State<BookingsPage> {
       initialIndex: 0,
       child: Scaffold(
         floatingActionButton: FloatingActionButton(
-          onPressed: () =>_selectDateRangeAndGenerateReport(context),
+          onPressed: () => _selectDateRangeAndGenerateReport(context),
           tooltip: 'Pick Date & Generate PDF',
           child: Icon(Icons.picture_as_pdf),
         ),
         appBar: AppBar(
           centerTitle: true,
           backgroundColor: AppColors.lightpacha,
-          title: Text('Clinic Bookings',style: TextStyle(color: AppColors.white),),
+          title: Text(
+            'Clinic Bookings',
+            style: TextStyle(color: AppColors.white),
+          ),
           bottom: TabBar(
             labelColor: AppColors.white, // Color for selected tab
             unselectedLabelColor: AppColors.white, // Color for unselected tabs
@@ -258,6 +466,7 @@ class _BookingsPageState extends State<BookingsPage> {
                               Text('Date: ${data['bookingDate']}'),
                               Text('Doctor: ${data['doctorName']}'),
                               Text('Phone number:${data['phoneNumber']}'),
+                              isUpcoming(data['bookingDate'])?tokenAssign(data):SizedBox(),
                             ],
                           ),
                         ),
