@@ -108,7 +108,7 @@ class _AuthScreenState extends State<AuthScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 ClipRRect(
-                  borderRadius: BorderRadiusGeometry.circular(12),
+                  borderRadius: BorderRadius.circular(12),
                   child: Image.asset(
                     'assets/images/ZappQ_logo.jpg',
                     height: 60,
