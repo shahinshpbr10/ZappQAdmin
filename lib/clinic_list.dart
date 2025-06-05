@@ -302,7 +302,6 @@ class _ClinicListWidgetState extends State<ClinicListWidget> {
 
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.all(screenWidth * 0.05),
       decoration: BoxDecoration(
         // color: AppColors.scaffoldbackgroundcolour.withOpacity(0.5),
         color: AppColors.lightpacha,
@@ -311,8 +310,6 @@ class _ClinicListWidgetState extends State<ClinicListWidget> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(height: screenWidth * 0.03),
-
           // Clinic Cards StreamBuilder
           StreamBuilder<QuerySnapshot>(
 
