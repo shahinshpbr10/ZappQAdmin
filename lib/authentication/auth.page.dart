@@ -1,6 +1,7 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:zappq_admin_app/common/colors.dart';
+import '../botton_nav.dart';
 import 'firebase_auth.dart';
 
 class AuthScreen extends StatefulWidget {
@@ -40,7 +41,7 @@ class _AuthScreenState extends State<AuthScreen> {
     setState(() => isLoading = false);
 
     if (result == 'Login Success') {
-      Navigator.pushReplacementNamed(context, '/home');
+      Navigator.push(context, MaterialPageRoute(builder: (context) => BottomNavScreen(),));
     } else {
       // Show error message in SnackBar
       ScaffoldMessenger.of(context).showSnackBar(

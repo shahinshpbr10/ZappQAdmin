@@ -6,6 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:zappq_admin_app/SplashScreen/splash.dart';
 import 'package:zappq_admin_app/authentication/auth.page.dart';
 import 'package:zappq_admin_app/contents/Bookings.dart';
+import 'botton_nav.dart';
+import 'contents/ZappqPackages.dart';
 import 'landing_page.dart';
 
 var height;
@@ -225,7 +227,7 @@ class _MyAppState extends State<MyApp> {
       routes: {
         '/': (context) => SplashScreen(),
         '/auth': (context) => AuthScreen(),
-        '/home': (context) => HomePage(),
+        '/home': (context) => BottomNavScreen(),
       },
     );
   }
