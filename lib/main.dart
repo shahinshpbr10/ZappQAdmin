@@ -7,11 +7,12 @@ import 'package:zappq_admin_app/SplashScreen/splash.dart';
 import 'package:zappq_admin_app/authentication/auth.page.dart';
 import 'package:zappq_admin_app/contents/Bookings.dart';
 import 'botton_nav.dart';
-import 'contents/ZappqPackages.dart';
-import 'landing_page.dart';
 
 var height;
 var width;
+
+// Global navigator key for navigation from static methods
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 /// Background handler (must be top-level function)
 @pragma('vm:entry-point')
@@ -31,6 +32,10 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
           'type': message.data['type'] ?? '',
           'clinicId': message.data['clinicId'] ?? '',
           'bookingId': message.data['bookingId'] ?? '',
+          'bookingFor': message.data['bookingFor'] ?? '',
+          'patientName': message.data['patientName'] ?? '',
+          'selectedDate': message.data['selectedDate'] ?? '',
+          'selectedTimeSlot': message.data['selectedTimeSlot'] ?? '',
         },
       ),
     );
@@ -44,38 +49,27 @@ void main() async {
   // Set the background messaging handler early on
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
-  await AwesomeNotifications().requestPermissionToSendNotifications();
-
-  NotificationSettings settings = await FirebaseMessaging.instance
-      .requestPermission(alert: true, badge: true, sound: true);
-
-  if (settings.authorizationStatus == AuthorizationStatus.authorized) {
-    debugPrint('✅ User granted FCM notification permission');
-  } else {
-    debugPrint('❌ User declined or has not accepted permission');
-  }
-
-  // 📌 Subscribe this device to admin topic
-  FirebaseMessaging.instance.subscribeToTopic('admin');
-
-  // Initialize Awesome Notifications FIRST
-  await AwesomeNotifications().initialize(null, [
-    NotificationChannel(
-      channelKey: 'admin_channel',
-      channelName: 'Admin Notifications',
-      channelDescription: 'Notifications for new bookings and admin alerts',
-      defaultColor: Color(0xFF3669C9),
-      importance: NotificationImportance.High,
-      channelShowBadge: true,
-      onlyAlertOnce: false,
-      playSound: true,
-      criticalAlerts: true,
-    ),
-  ], debug: false);
+  // Initialize Awesome Notifications with proper icon
+  await AwesomeNotifications().initialize(
+    null,
+    [
+      NotificationChannel(
+        channelKey: 'admin_channel',
+        channelName: 'Admin Notifications',
+        channelDescription: 'Notifications for new bookings and admin alerts',
+        defaultColor: Color(0xFF3669C9),
+        importance: NotificationImportance.High,
+        channelShowBadge: true,
+        onlyAlertOnce: false,
+        playSound: true,
+        criticalAlerts: true,
+      ),
+    ],
+    debug: false,
+  );
 
   // Request notification permissions
   await _requestNotificationPermissions();
-
   runApp(ProviderScope(child: const MyApp()));
 }
 
@@ -88,16 +82,21 @@ Future<void> _requestNotificationPermissions() async {
   }
 
   // Request FCM permission
-  NotificationSettings settings = await FirebaseMessaging.instance
-      .requestPermission(
-        alert: true,
-        announcement: false,
-        badge: true,
-        carPlay: false,
-        criticalAlert: false,
-        provisional: false,
-        sound: true,
-      );
+  NotificationSettings settings = await FirebaseMessaging.instance.requestPermission(
+    alert: true,
+    announcement: false,
+    badge: true,
+    carPlay: false,
+    criticalAlert: false,
+    provisional: false,
+    sound: true,
+  );
+
+  if (settings.authorizationStatus == AuthorizationStatus.authorized) {
+    debugPrint('User granted FCM notification permission');
+  } else {
+    debugPrint('User declined or has not accepted permission');
+  }
 
   print('User granted permission: ${settings.authorizationStatus}');
 }
@@ -136,6 +135,10 @@ class _MyAppState extends State<MyApp> {
               'clinicId': message.data['clinicId'] ?? '',
               'bookingId': message.data['bookingId'] ?? '',
               'clinicName': message.data['clinicName'] ?? '',
+              'bookingFor': message.data['bookingFor'] ?? '',
+              'patientName': message.data['patientName'] ?? '',
+              'selectedDate': message.data['selectedDate'] ?? '',
+              'selectedTimeSlot': message.data['selectedTimeSlot'] ?? '',
             },
           ),
         );
@@ -163,44 +166,53 @@ class _MyAppState extends State<MyApp> {
   /// Called when notification is created
   @pragma("vm:entry-point")
   static Future<void> _onNotificationCreatedMethod(
-    ReceivedNotification receivedNotification,
-  ) async {
+      ReceivedNotification receivedNotification,
+      ) async {
     print('Notification created: ${receivedNotification.title}');
   }
 
   /// Called when notification is displayed
   @pragma("vm:entry-point")
   static Future<void> _onNotificationDisplayedMethod(
-    ReceivedNotification receivedNotification,
-  ) async {
+      ReceivedNotification receivedNotification,
+      ) async {
     print('Notification displayed: ${receivedNotification.title}');
   }
 
   /// Called when notification is dismissed
   @pragma("vm:entry-point")
   static Future<void> _onDismissActionReceivedMethod(
-    ReceivedAction receivedAction,
-  ) async {
+      ReceivedAction receivedAction,
+      ) async {
     print('Notification dismissed: ${receivedAction.title}');
   }
 
   /// Called when user taps on notification
   @pragma("vm:entry-point")
   static Future<void> _onActionReceivedMethod(
-    ReceivedAction receivedAction,
-  ) async {
+      ReceivedAction receivedAction,
+      ) async {
     print('Notification action received: ${receivedAction.actionType}');
 
     // Handle notification tap based on payload
     if (receivedAction.payload != null) {
       final payload = receivedAction.payload!;
 
+      // Handle different notification types
       if (payload['type'] == 'new_booking') {
-        // Navigate to booking details or relevant page
-        // You can use a global navigator key or state management for navigation
-        print(
-          'Navigate to booking: ${payload['bookingId']} at clinic: ${payload['clinicId']}',
+        // Navigate to clinic booking details
+        navigatorKey.currentState?.push(
+          MaterialPageRoute(
+            builder: (context) => BookingsPage(clinicid: payload['clinicId'] ?? ''),
+          ),
         );
+      } else if (payload['type'] == 'smart_clinic_booking') {
+        // Handle smart clinic booking navigation
+        print('Smart clinic booking tapped:');
+        print('- Patient: ${payload['patientName']}');
+        print('- Booking For: ${payload['bookingFor']}');
+        print('- Date: ${payload['selectedDate']}');
+        print('- Time: ${payload['selectedTimeSlot']}');
       }
     }
   }
@@ -214,6 +226,12 @@ class _MyAppState extends State<MyApp> {
           builder: (context) => BookingsPage(clinicid: data['clinicId']),
         ),
       );
+    } else if (data['type'] == 'smart_clinic_booking') {
+      // Handle smart clinic booking tap
+      print('Smart clinic booking tapped from terminated state:');
+      print('- Patient: ${data['patientName']}');
+      print('- Booking For: ${data['bookingFor']}');
+
     }
   }
 
@@ -222,6 +240,7 @@ class _MyAppState extends State<MyApp> {
     height = MediaQuery.of(context).size.height;
     width = MediaQuery.of(context).size.width;
     return MaterialApp(
+      navigatorKey: navigatorKey,
       debugShowCheckedModeBanner: false,
       initialRoute: '/',
       routes: {
