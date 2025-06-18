@@ -466,6 +466,8 @@ class _BookingsPageState extends State<BookingsPage> {
                               Text('Date: ${data['bookingDate']}'),
                               Text('Doctor: ${data['doctorName']}'),
                               Text('Phone number:${data['phoneNumber']}'),
+                              Text('Payment Method:${data['paymentMethod']}'),
+                              Text('Payment Amount:${data['paymentAmount']}'),
                               isUpcoming(data['bookingDate'])?tokenAssign(data):SizedBox(),
                             ],
                           ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../common/colors.dart';
 import '../main.dart';
+import 'createLabPackage.dart';
 import 'labTest_edit.dart';
 
 class LabTestsPage extends StatefulWidget {
@@ -12,15 +13,16 @@ class LabTestsPage extends StatefulWidget {
 }
 
 class _LabTestsPageState extends State<LabTestsPage> {
-  final CollectionReference labTestsRef =
-  FirebaseFirestore.instance.collection('lab_tests');
+  final CollectionReference labTestsRef = FirebaseFirestore.instance.collection(
+    'lab_tests',
+  );
 
   TextEditingController searchController = TextEditingController();
   TextEditingController priceController = TextEditingController();
 
   List<DocumentSnapshot> allTests = [];
   List<DocumentSnapshot> filteredTests = [];
-  List<String> selectedTests = [];  // To store the IDs of selected tests
+  List<String> selectedTests = []; // To store the IDs of selected tests
   bool isLoading = true;
   bool _isLongPressed = false;
 
@@ -42,10 +44,11 @@ class _LabTestsPageState extends State<LabTestsPage> {
 
   // Filter tests by test name
   void _filterTests(String query) {
-    final results = allTests.where((doc) {
-      final name = (doc['TEST_NAME'] ?? '').toString().toLowerCase();
-      return name.contains(query.toLowerCase());
-    }).toList();
+    final results =
+        allTests.where((doc) {
+          final name = (doc['TEST_NAME'] ?? '').toString().toLowerCase();
+          return name.contains(query.toLowerCase());
+        }).toList();
 
     setState(() {
       filteredTests = results;
@@ -71,14 +74,13 @@ class _LabTestsPageState extends State<LabTestsPage> {
     if (newPrice == null) {
       // Invalid price input
       ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Please enter a valid price")));
+        const SnackBar(content: Text("Please enter a valid price")),
+      );
       return;
     }
 
     for (var docId in selectedTests) {
-      await labTestsRef.doc(docId).update({
-        'PATIENT_RATE': newPrice,
-      });
+      await labTestsRef.doc(docId).update({'PATIENT_RATE': newPrice});
     }
 
     setState(() {
@@ -89,7 +91,8 @@ class _LabTestsPageState extends State<LabTestsPage> {
 
     // Inform the user
     ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Prices updated successfully")));
+      const SnackBar(content: Text("Prices updated successfully")),
+    );
   }
 
   void _editTest(String docId, Map<String, dynamic> testData) {
@@ -110,111 +113,149 @@ class _LabTestsPageState extends State<LabTestsPage> {
         centerTitle: true,
         title: Text("Lab Tests", style: TextStyle(color: AppColors.white)),
       ),
-      body: isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : Padding(
-        padding: const EdgeInsets.all(12.0),
-        child: Column(
-          children: [
-            // Search bar
-            TextField(
-              controller: searchController,
-              onChanged: _filterTests,
-              decoration: InputDecoration(
-                hintText: "Search by Test Name",
-                prefixIcon: const Icon(Icons.search),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                filled: true,
-                fillColor: Colors.grey[200],
-              ),
-            ),
-            const SizedBox(height: 12),
-
-            // Price editing section for selected tests
-            if (selectedTests.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 12),
+      body:
+          isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : Padding(
+                padding: const EdgeInsets.all(12.0),
                 child: Column(
                   children: [
+                    // Search bar
                     TextField(
-                      controller: priceController,
+                      controller: searchController,
+                      onChanged: _filterTests,
                       decoration: InputDecoration(
-                        labelText: "Edit Price for Selected Tests",
-                        border: const OutlineInputBorder(),
+                        hintText: "Search by Test Name",
+                        prefixIcon: const Icon(Icons.search),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        filled: true,
+                        fillColor: Colors.grey[200],
                       ),
-                      keyboardType: TextInputType.number,
                     ),
                     const SizedBox(height: 12),
-                    TextButton(
-                      onPressed: _updatePrices,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.lightpacha,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
+
+                    // Price editing section for selected tests
+                    if (selectedTests.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: Column(
+                          children: [
+                            TextField(
+                              controller: priceController,
+                              decoration: InputDecoration(
+                                labelText: "Edit Price for Selected Tests",
+                                border: const OutlineInputBorder(),
+                              ),
+                              keyboardType: TextInputType.number,
+                            ),
+                            const SizedBox(height: 12),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceAround,
+                              children: [
+                                TextButton(
+                                  onPressed: _updatePrices,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppColors.lightpacha,
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 14,
+                                    ),
+                                  ),
+                                  child: const Text(
+                                    "      Update        ",
+                                    style: TextStyle(color: Colors.white),
+                                  ),
+                                ),
+                                TextButton(
+                                  onPressed: () {
+                                    // Navigator.push(
+                                    //   context,
+                                    //   MaterialPageRoute(
+                                    //     builder:
+                                    //         (_) => AddLabPackagePage(),
+                                    //   ),
+                                    // );
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppColors.lightpacha,
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 14,
+                                    ),
+                                  ),
+                                  child: const Text(
+                                    "    Create package   ",
+                                    style: TextStyle(color: Colors.white),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
-                      child: const Text(
-                        "            Update             ",
-                        style: TextStyle(color: Colors.white),
+
+                    // Lab test list
+                    Expanded(
+                      child: ListView.separated(
+                        itemCount: filteredTests.length,
+                        separatorBuilder:
+                            (context, index) => const SizedBox(height: 12),
+                        itemBuilder: (context, index) {
+                          final data =
+                              filteredTests[index].data()
+                                  as Map<String, dynamic>;
+
+                          return GestureDetector(
+                            onLongPress: () {
+                              setState(() {
+                                // Show checkboxes when long-pressed
+                                _isLongPressed = true;
+                              });
+                            },
+                            onTap:
+                                () => _editTest(filteredTests[index].id, data),
+                            child: Container(
+                              padding: const EdgeInsets.all(12),
+                              width: width * 0.9,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(
+                                  width * 0.03,
+                                ),
+                                color: AppColors.lightpacha,
+                              ),
+                              child: Row(
+                                children: [
+                                  // Show checkbox only when long pressed
+                                  if (_isLongPressed)
+                                    Checkbox(
+                                      value: selectedTests.contains(
+                                        filteredTests[index].id,
+                                      ),
+                                      onChanged:
+                                          (_) => _toggleSelection(
+                                            filteredTests[index].id,
+                                          ),
+                                    ),
+                                  Expanded(
+                                    child: Text(
+                                      data['TEST_NAME'] ?? '',
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 18,
+                                        color: AppColors.white,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
                       ),
                     ),
                   ],
                 ),
               ),
-
-            // Lab test list
-            Expanded(
-              child: ListView.separated(
-                itemCount: filteredTests.length,
-                separatorBuilder: (context, index) =>
-                const SizedBox(height: 12),
-                itemBuilder: (context, index) {
-                  final data =
-                  filteredTests[index].data() as Map<String, dynamic>;
-
-                  return GestureDetector(
-                    onLongPress: () {
-                      setState(() {
-                        // Show checkboxes when long-pressed
-                        _isLongPressed = true;
-                      });
-                    },
-                    onTap: () => _editTest(filteredTests[index].id, data),
-                    child: Container(
-                      padding: const EdgeInsets.all(12),
-                      width: width * 0.9,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(width * 0.03),
-                        color: AppColors.lightpacha,
-                      ),
-                      child: Row(
-                        children: [
-                          // Show checkbox only when long pressed
-                          if (_isLongPressed)
-                            Checkbox(
-                              value: selectedTests.contains(filteredTests[index].id),
-                              onChanged: (_) => _toggleSelection(filteredTests[index].id),
-                            ),
-                          Expanded(
-                            child: Text(
-                              data['TEST_NAME'] ?? '',
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 18,
-                                  color: AppColors.white,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

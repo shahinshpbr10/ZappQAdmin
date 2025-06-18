@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:zappq_admin_app/common/colors.dart';
 import 'contents/LabTests.dart';
 import 'contents/ZappqPackages.dart';
+import 'contents/smartclinic_bookings.dart';
 import 'landing_page.dart';
 
 class BottomNavScreen extends StatefulWidget {
@@ -18,6 +19,7 @@ class _BottomNavScreenState extends State<BottomNavScreen> {
     HomePage(),
     ZappqPackages(),
     LabTestsPage(),
+    SmartClinicPatientPage()
   ];
 
   @override
@@ -42,6 +44,10 @@ class _BottomNavScreenState extends State<BottomNavScreen> {
           BottomNavigationBarItem(
             icon: Icon(Icons.science),
             label: 'Lab Tests',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.my_library_books_outlined),
+            label: 'Smart clinic bookings',
           ),
         ],
       ),
