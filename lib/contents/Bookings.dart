@@ -468,6 +468,7 @@ class _BookingsPageState extends State<BookingsPage> {
                               Text('Phone number:${data['phoneNumber']}'),
                               Text('Payment Method:${data['paymentMethod']}'),
                               Text('Payment Amount:${data['paymentAmount']}'),
+                              isExpired(data['bookingDate'])?Text('Token Number:${data['token']}'):SizedBox(),
                               isUpcoming(data['bookingDate'])?tokenAssign(data):SizedBox(),
                             ],
                           ),
