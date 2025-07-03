@@ -35,6 +35,24 @@ class _BookingsPageState extends State<BookingsPage> {
     currentClinicId=widget.clinicid;
   }
 
+  DateTime getAppointmentStartTime(String date, String timeRange) {
+    try {
+      timeRange = timeRange.replaceAll('[', '').replaceAll(']', '');
+
+      final startTimeString = timeRange.split(' - ').first.trim(); // "8:30 AM"
+
+      // Combine with date
+      final dateTimeString = "$date $startTimeString"; // "2025-07-05 8:30 AM"
+
+      // Parse it into DateTime
+      return DateFormat('yyyy-MM-dd h:mm a').parse(dateTimeString);
+    } catch (e) {
+      print('Error parsing appointment start time: $e');
+      return DateTime.now(); // fallback to current time or handle as needed
+    }
+  }
+
+
   Future<void> _updateToken(String bookingId, int token) async {
     if (currentClinicId == null) return;
 
@@ -447,6 +465,10 @@ class _BookingsPageState extends State<BookingsPage> {
                     itemBuilder: (context, index) {
                       final data =
                           (filtered[index].data() as Map<String, dynamic>);
+
+                      DateTime startTime = getAppointmentStartTime(data['bookingDate'], data['appointmentTime']);
+                      print(startTime);
+
                       return Card(
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(20),
@@ -469,7 +491,7 @@ class _BookingsPageState extends State<BookingsPage> {
                               Text('Payment Method:${data['paymentMethod']}'),
                               Text('Payment Amount:${data['paymentAmount']}'),
                               isExpired(data['bookingDate'])?Text('Token Number:${data['token']}'):SizedBox(),
-                              isUpcoming(data['bookingDate'])?tokenAssign(data):SizedBox(),
+                              startTime.isAfter(DateTime.now()) ? tokenAssign(data) : SizedBox(),
                             ],
                           ),
                         ),

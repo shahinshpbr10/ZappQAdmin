@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../common/colors.dart';
 import '../main.dart';
+import 'CreateLabTestPage.dart';
 import 'createLabPackage.dart';
 import 'labTest_edit.dart';
 
@@ -41,6 +42,43 @@ class _LabTestsPageState extends State<LabTestsPage> {
       isLoading = false;
     });
   }
+
+  void _confirmDelete(String docId) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Test'),
+        content: const Text('Are you sure you want to delete this lab test?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        await labTestsRef.doc(docId).delete();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Test deleted successfully",),backgroundColor: Colors.red,),
+        );
+        _fetchTests(); // refresh the list
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error deleting test: $e")),
+        );
+      }
+    }
+  }
+
+
 
   // Filter tests by test name
   void _filterTests(String query) {
@@ -111,7 +149,21 @@ class _LabTestsPageState extends State<LabTestsPage> {
       appBar: AppBar(
         backgroundColor: AppColors.lightpacha,
         centerTitle: true,
-        title: Text("Lab Tests", style: TextStyle(color: AppColors.white)),
+        title: const Text("Lab Tests", style: TextStyle(color: AppColors.white)),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.add, color: Colors.white),
+            tooltip: 'Create Lab test',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const  CreateLabPackagePage(),
+                ),
+              );
+            },
+          ),
+        ],
       ),
       body:
           isLoading
@@ -196,59 +248,78 @@ class _LabTestsPageState extends State<LabTestsPage> {
 
                     // Lab test list
                     Expanded(
-                      child: ListView.separated(
-                        itemCount: filteredTests.length,
-                        separatorBuilder:
-                            (context, index) => const SizedBox(height: 12),
-                        itemBuilder: (context, index) {
-                          final data =
-                              filteredTests[index].data()
-                                  as Map<String, dynamic>;
+                      child: StreamBuilder<QuerySnapshot>(
+                        stream: FirebaseFirestore.instance.collection('lab_tests').snapshots(),
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState == ConnectionState.waiting) {
+                            return const Center(child: CircularProgressIndicator());
+                          }
 
-                          return GestureDetector(
-                            onLongPress: () {
-                              setState(() {
-                                // Show checkboxes when long-pressed
-                                _isLongPressed = true;
-                              });
-                            },
-                            onTap:
-                                () => _editTest(filteredTests[index].id, data),
-                            child: Container(
-                              padding: const EdgeInsets.all(12),
-                              width: width * 0.9,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(
-                                  width * 0.03,
-                                ),
-                                color: AppColors.lightpacha,
-                              ),
-                              child: Row(
-                                children: [
-                                  // Show checkbox only when long pressed
-                                  if (_isLongPressed)
-                                    Checkbox(
-                                      value: selectedTests.contains(
-                                        filteredTests[index].id,
-                                      ),
-                                      onChanged:
-                                          (_) => _toggleSelection(
-                                            filteredTests[index].id,
-                                          ),
-                                    ),
-                                  Expanded(
-                                    child: Text(
-                                      data['TEST_NAME'] ?? '',
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 18,
-                                        color: AppColors.white,
-                                      ),
-                                    ),
+                          if (snapshot.hasError) {
+                            return const Center(child: Text('Something went wrong'));
+                          }
+
+                          final allDocs = snapshot.data!.docs;
+
+                          // Apply filter (if search text is present)
+                          final filteredDocs = searchController.text.isEmpty
+                              ? allDocs
+                              : allDocs.where((doc) {
+                            final name = (doc['TEST_NAME'] ?? '').toString().toLowerCase();
+                            return name.contains(searchController.text.toLowerCase());
+                          }).toList();
+
+                          if (filteredDocs.isEmpty) {
+                            return const Center(child: Text('No lab tests found'));
+                          }
+
+                          return ListView.separated(
+                            itemCount: filteredDocs.length,
+                            separatorBuilder: (context, index) => const SizedBox(height: 12),
+                            itemBuilder: (context, index) {
+                              final doc = filteredDocs[index];
+                              final data = doc.data() as Map<String, dynamic>;
+
+                              return GestureDetector(
+                                onLongPress: () {
+                                  setState(() {
+                                    _isLongPressed = true;
+                                  });
+                                },
+                                onTap: () => _editTest(doc.id, data),
+                                child: Container(
+                                  padding: const EdgeInsets.all(12),
+                                  width: width * 0.9,
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(width * 0.03),
+                                    color: AppColors.lightpacha,
                                   ),
-                                ],
-                              ),
-                            ),
+                                  child: Row(
+                                    children: [
+                                      if (_isLongPressed)
+                                        Checkbox(
+                                          value: selectedTests.contains(doc.id),
+                                          onChanged: (_) => _toggleSelection(doc.id),
+                                        ),
+                                      Expanded(
+                                        child: Text(
+                                          data['TEST_NAME'] ?? '',
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 18,
+                                            color: AppColors.white,
+                                          ),
+                                        ),
+                                      ),
+                                      IconButton(
+                                        icon: const Icon(Icons.delete, color: Colors.red),
+                                        onPressed: () => _confirmDelete(doc.id),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
                           );
                         },
                       ),

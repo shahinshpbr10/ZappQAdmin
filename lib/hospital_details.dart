@@ -1,14 +1,14 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:zappq_admin_app/common/colors.dart';
-import 'package:zappq_admin_app/contents/Account_Creation.dart';
-import 'package:zappq_admin_app/contents/Bookings.dart';
-import 'package:zappq_admin_app/contents/Staff_add.dart';
-import 'package:zappq_admin_app/contents/doctor_view.dart';
+import 'package:zappq_admin_app/hospital_related/Account_Creation.dart';
+import 'package:zappq_admin_app/hospital_related/Bookings.dart';
+import 'package:zappq_admin_app/hospital_related/Staff_add.dart';
+import 'package:zappq_admin_app/hospital_related/doctor_view.dart';
 import 'package:zappq_admin_app/main.dart';
 import 'package:zappq_admin_app/common/text_styles.dart';
 import 'LIve/livelisting.dart';
-import 'contents/Hospital_Edit.dart';
+import 'hospital_related/Hospital_Edit.dart';
 
 class ClinicDetailsPage extends StatefulWidget {
   final Map<String, dynamic> clinicData;

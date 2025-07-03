@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:zappq_admin_app/common/colors.dart';
 import 'package:zappq_admin_app/main.dart';
 import 'Package_edit.dart';
+import 'createLabPackage.dart';
 
 class ZappqPackages extends StatefulWidget {
   const ZappqPackages({super.key});
@@ -19,39 +20,51 @@ class _ZappqPackagesState extends State<ZappqPackages> {
   TextEditingController actualPriceController = TextEditingController(); // Controller for Actual Price
   TextEditingController labPriceController = TextEditingController(); // Controller for Lab Price
 
-  List<DocumentSnapshot> allPackages = [];
-  List<DocumentSnapshot> filteredPackages = [];
+  // List<DocumentSnapshot> allPackages = [];
+  // List<DocumentSnapshot> filteredPackages = [];
   List<String> selectedPackages = [];  // To track selected package IDs
-  bool isLoading = true;
+  // bool isLoading = true;
   bool _isLongPressed = false; // To toggle long press mode
 
-  @override
-  void initState() {
-    super.initState();
-    _fetchPackages();
+
+  void _confirmDelete(String docId) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Package'),
+        content: const Text('Are you sure you want to delete this Package?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        await  packagesRef.doc(docId).delete();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Package deleted successfully",),backgroundColor: Colors.red,),
+        );
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error deleting Package: $e")),
+        );
+      }
+    }
   }
 
-  // Fetch all packages from Firestore
-  void _fetchPackages() async {
-    final snapshot = await packagesRef.get();
-    setState(() {
-      allPackages = snapshot.docs;
-      filteredPackages = allPackages;
-      isLoading = false;
-    });
-  }
 
-  // Filter packages based on search query
-  void _filterPackages(String query) {
-    final results = allPackages.where((doc) {
-      final name = (doc['PACKAGE NAME'] ?? '').toString().toLowerCase();
-      return name.contains(query.toLowerCase());
-    }).toList();
 
-    setState(() {
-      filteredPackages = results;
-    });
-  }
+
+
 
   // Toggle selection of packages on checkbox tap
   void _toggleSelection(String docId) {
@@ -100,17 +113,31 @@ class _ZappqPackagesState extends State<ZappqPackages> {
         backgroundColor: AppColors.lightpacha,
         centerTitle: true,
         title: Text("Zappq Packages", style: TextStyle(color: AppColors.white)),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.add, color: Colors.white),
+            tooltip: 'Create Package',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const  AddLabPackagePage(),
+                ),
+              );
+            },
+          ),
+        ],
       ),
-      body: isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : Padding(
+      body: Padding(
         padding: const EdgeInsets.all(12.0),
         child: Column(
           children: [
             // Search Bar
             TextField(
               controller: searchController,
-              onChanged: _filterPackages,
+              onChanged: (_) {
+                setState(() {}); // triggers UI refresh on text change
+              },
               decoration: InputDecoration(
                 hintText: "Search by Package Name",
                 prefixIcon: const Icon(Icons.search),
@@ -123,35 +150,30 @@ class _ZappqPackagesState extends State<ZappqPackages> {
             ),
             const SizedBox(height: 12),
 
-            // Price Editing Section (for selected packages)
+            // Price Editing Section
             if (selectedPackages.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.only(bottom: 12),
                 child: Column(
                   children: [
-                    // Actual Price Field
                     TextField(
                       controller: actualPriceController,
-                      decoration: InputDecoration(
+                      decoration: const InputDecoration(
                         labelText: "Edit Actual Price for Selected Packages",
-                        border: const OutlineInputBorder(),
+                        border: OutlineInputBorder(),
                       ),
                       keyboardType: TextInputType.number,
                     ),
                     const SizedBox(height: 12),
-
-                    // Lab Price Field
                     TextField(
                       controller: labPriceController,
-                      decoration: InputDecoration(
+                      decoration: const InputDecoration(
                         labelText: "Edit Lab Price for Selected Packages",
-                        border: const OutlineInputBorder(),
+                        border: OutlineInputBorder(),
                       ),
                       keyboardType: TextInputType.number,
                     ),
                     const SizedBox(height: 12),
-
-                    // Update Prices Button
                     ElevatedButton(
                       onPressed: _updatePrices,
                       style: ElevatedButton.styleFrom(
@@ -164,59 +186,83 @@ class _ZappqPackagesState extends State<ZappqPackages> {
                 ),
               ),
 
-            // Package List
             Expanded(
-              child: ListView.separated(
-                itemCount: filteredPackages.length,
-                separatorBuilder: (context, index) => const SizedBox(height: 12),
-                itemBuilder: (context, index) {
-                  final data = filteredPackages[index].data() as Map<String, dynamic>;
+              child: StreamBuilder<QuerySnapshot>(
+                stream: packagesRef.snapshots(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
 
-                  return GestureDetector(
-                    onLongPress: () {
-                      setState(() {
-                        _isLongPressed = true;
-                      });
-                    },
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => EditPackagePage(
-                            docId: filteredPackages[index].id,
-                            packageData: data,
+                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                    return const Center(child: Text("No packages found"));
+                  }
+
+                  final allDocs = snapshot.data!.docs;
+                  final query = searchController.text.toLowerCase();
+                  final filtered = allDocs.where((doc) {
+                    final data = doc.data() as Map<String, dynamic>;
+                    final name = (data['PACKAGE NAME'] ?? '').toString().toLowerCase();
+                    return name.contains(query);
+                  }).toList();
+
+                  return ListView.separated(
+                    itemCount: filtered.length,
+                    separatorBuilder: (context, index) => const SizedBox(height: 12),
+                    itemBuilder: (context, index) {
+                      final doc = filtered[index];
+                      final data = doc.data() as Map<String, dynamic>;
+
+                      return GestureDetector(
+                        onLongPress: () {
+                          setState(() {
+                            _isLongPressed = true;
+                          });
+                        },
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => EditPackagePage(
+                                docId: doc.id,
+                                packageData: data,
+                              ),
+                            ),
+                          );
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(12),
+                          width: MediaQuery.of(context).size.width * 0.9,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(MediaQuery.of(context).size.width * 0.03),
+                            color: AppColors.lightpacha,
+                          ),
+                          child: Row(
+                            children: [
+                              if (_isLongPressed)
+                                Checkbox(
+                                  value: selectedPackages.contains(doc.id),
+                                  onChanged: (_) => _toggleSelection(doc.id),
+                                ),
+                              Expanded(
+                                child: Text(
+                                  data['PACKAGE NAME'] ?? '',
+                                  style: const TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.delete, color: Colors.red),
+                                onPressed: () => _confirmDelete(doc.id),
+                              ),
+                            ],
                           ),
                         ),
                       );
                     },
-                    child: Container(
-                      padding: const EdgeInsets.all(12),
-                      width: width * 0.9,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(width * 0.03),
-                        color: AppColors.lightpacha,
-                      ),
-                      child: Row(
-                        children: [
-                          // Show checkbox only when long pressed
-                          if (_isLongPressed)
-                            Checkbox(
-                              value: selectedPackages.contains(filteredPackages[index].id),
-                              onChanged: (_) => _toggleSelection(filteredPackages[index].id),
-                            ),
-                          Expanded(
-                            child: Text(
-                              data['PACKAGE NAME'] ?? '',
-                              style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
                   );
                 },
               ),

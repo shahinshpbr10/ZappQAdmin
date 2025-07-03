@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:zappq_admin_app/SplashScreen/splash.dart';
 import 'package:zappq_admin_app/authentication/auth.page.dart';
-import 'package:zappq_admin_app/contents/Bookings.dart';
+import 'package:zappq_admin_app/hospital_related/Bookings.dart';
 import 'botton_nav.dart';
 
 var height;
