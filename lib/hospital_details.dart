@@ -47,16 +47,12 @@ class _ClinicDetailsPageState extends State<ClinicDetailsPage> {
 
     contents = [
       LiveTokenPage(clinicId: widget.ClinicId,),
-      // LiveTokenPage(),
-      // LiveHospital(),
       BookingsPage(clinicid:widget.ClinicId ),
       DoctorView(clinicId: widget.ClinicId),
       StaffCreation(clinicId: widget.ClinicId),
       EditProfilePage(clinicid: widget.ClinicId),
       CreateAccountPage()
     ];
-    // Example usage
-    // getClinicIdByEmail(widget.email);
   }
 
 

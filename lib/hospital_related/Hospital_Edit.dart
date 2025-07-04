@@ -20,6 +20,9 @@ class _EditProfilePageState extends State<EditProfilePage> {
   final TextEditingController _addressController = TextEditingController();
   final TextEditingController _contactEmailController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
+  final TextEditingController _descriptionController = TextEditingController();
+  final TextEditingController _additionalLocationController = TextEditingController(); // if needed
+
 
   Uint8List? _profileImageBytes;
   bool _isImageUploaded = false;
@@ -84,6 +87,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
         _phoneController.text = currentData['phone'] ?? '';
         _selectedLocation = currentData['location'] ?? '';
         _profileImageUrl = currentData['profilePhoto'];
+        _descriptionController.text = currentData['description'] ?? '';
+        _additionalLocationController.text = currentData['locationExtra'] ?? '';
       });
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -222,6 +227,15 @@ print("ggggggggggggggggggggggggggggggggggggggg");
         updatedData['location'] = _selectedLocation;
       }
 
+      if (_descriptionController.text.trim().isNotEmpty && _descriptionController.text != currentData['description']) {
+        updatedData['description'] = _descriptionController.text.trim();
+      }
+
+      if (_additionalLocationController.text.trim().isNotEmpty && _additionalLocationController.text != currentData['locationExtra']) {
+        updatedData['locationExtra'] = _additionalLocationController.text.trim();
+      }
+
+
       if (updatedData.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('No changes made to update.')),
@@ -257,6 +271,18 @@ print("ggggggggggggggggggggggggggggggggggggggg");
       return null;
     }
   }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _addressController.dispose();
+    _contactEmailController.dispose();
+    _phoneController.dispose();
+    _descriptionController.dispose();
+    _additionalLocationController.dispose();
+    super.dispose();
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -407,6 +433,11 @@ print("ggggggggggggggggggggggggggggggggggggggg");
         _buildDropdownField('Clinic Location', _selectedLocation, _locations, (value) => setState(() => _selectedLocation = value)),
         const SizedBox(height: 20),
         _buildTextField(_addressController, 'Clinic Address', 'Please enter address', 3),
+        const SizedBox(height: 20),
+        _buildTextField(_descriptionController, 'Clinic Description', 'Please enter description', 3),
+        const SizedBox(height: 20),
+        _buildTextField(_additionalLocationController, 'Additional Location', 'Please enter location', 1),
+
       ],
     );
   }

@@ -16,7 +16,8 @@ class Patient {
   final String testName;
   final String testTime;
   final num serviceCharge;
-  final String status; // ✅ NEW FIELD
+  final String? deliveryCharge;
+  final String status;
 
   Patient({
     required this.id,
@@ -34,7 +35,8 @@ class Patient {
     required this.testName,
     required this.testTime,
     required this.serviceCharge,
-    required this.status, // ✅ Add to constructor
+    required this.deliveryCharge,
+    required this.status,
   });
 
   factory Patient.fromMap(String id, Map<String, dynamic> data) {
@@ -54,7 +56,8 @@ class Patient {
       testName: data['serviceName'] ?? '',
       testTime: data['selectedTimeSlot'] ?? '',
       serviceCharge: (data['servicePrice'] ?? 0),
-      status: data['status'] ?? 'Pending', // ✅ default fallback
+      deliveryCharge: data['deliveryCharge'], // no need for ?? 0 if you want null
+      status: data['status'] ?? 'Pending',
     );
   }
 
@@ -74,7 +77,8 @@ class Patient {
     String? testName,
     String? testTime,
     num? serviceCharge,
-    String? status, // ✅ new field
+    num? deliveryCharge,
+    String? status,
   }) {
     return Patient(
       id: id ?? this.id,
@@ -92,7 +96,7 @@ class Patient {
       testName: testName ?? this.testName,
       testTime: testTime ?? this.testTime,
       serviceCharge: serviceCharge ?? this.serviceCharge,
-      status: status ?? this.status, // ✅ include in copy
+      status: status ?? this.status, deliveryCharge: '',
     );
   }
 }

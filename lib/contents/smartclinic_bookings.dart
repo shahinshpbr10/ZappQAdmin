@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart';
 import 'package:zappq_admin_app/common/colors.dart';
 import 'package:zappq_admin_app/main.dart';
 import '../models/patientmodel.dart';
@@ -16,6 +17,9 @@ class _SmartClinicPatientPageState extends State<SmartClinicPatientPage> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
 
+  String formatSelectedDate(DateTime date) {
+    return DateFormat('dd MMMM yyyy').format(date);
+  }
   @override
   void dispose() {
     _searchController.dispose();
@@ -97,41 +101,76 @@ class _SmartClinicPatientPageState extends State<SmartClinicPatientPage> {
                               'Name: ${patient.name}',
                             style: const TextStyle(color: AppColors.white),
                           ),
-                          subtitle: Text(
-                            'Phone: ${patient.phoneNumber}',
-                            style: const TextStyle(color: AppColors.white),
+                          subtitle: Column(
+                            mainAxisAlignment: MainAxisAlignment.start,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Status: ${patient.status}',
+                                style: const TextStyle(color: AppColors.white),
+                              ),
+                              Text(
+                                'Slot Date: ${formatSelectedDate(patient.selectedDate)}',
+                                style: const TextStyle(color: AppColors.white),
+                              ),
+                            ],
                           ),
                           trailing: IconButton(
                             icon: const Icon(Icons.delete, color: Colors.red),
-                            onPressed: () async {
-                              final confirm = await showDialog<bool>(
-                                context: context,
-                                builder: (context) => AlertDialog(
-                                  title: const Text('Confirm Deletion'),
-                                  content: const Text('Are you sure you want to delete this booking?'),
-                                  actions: [
-                                    TextButton(
-                                      onPressed: () => Navigator.pop(context, false),
-                                      child: const Text('Cancel'),
-                                    ),
-                                    TextButton(
-                                      onPressed: () => Navigator.pop(context, true),
-                                      child: const Text('Delete'),
-                                    ),
-                                  ],
-                                ),
-                              );
+                              onPressed: () async {
+                                final confirm = await showDialog<bool>(
+                                  context: context,
+                                  builder: (context) => AlertDialog(
+                                    title: const Text('Confirm Deletion'),
+                                    content: const Text('Are you sure you want to delete this booking?'),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () => Navigator.pop(context, false),
+                                        child: const Text('Cancel'),
+                                      ),
+                                      TextButton(
+                                        onPressed: () => Navigator.pop(context, true),
+                                        child: const Text('Delete'),
+                                      ),
+                                    ],
+                                  ),
+                                );
 
-                              if (confirm == true) {
+                              if(confirm==true){
+                                final bookingDoc = await FirebaseFirestore.instance
+                                    .collection('smartclinic_booking')
+                                    .doc(patient.id)
+                                    .get();
+
+                                final data = bookingDoc.data();
+                                if (data == null) return;
+
+                                final Timestamp timestamp = data['selectedDate'];
+                                final String timeSlot = data['selectedTimeSlot'];
+
+                                final DateTime selectedDate = timestamp.toDate();
+                                final String formattedDate = "${selectedDate.day}-${selectedDate.month}-${selectedDate.year}";
+
+                                final docRef = FirebaseFirestore.instance
+                                    .collection('id_counters')
+                                    .doc('lab_booking_counter');
+
+                                await docRef.update({
+                                  '$formattedDate.$timeSlot': FieldValue.increment(-1),
+                                });
+
                                 await FirebaseFirestore.instance
                                     .collection('smartclinic_booking')
                                     .doc(patient.id)
                                     .delete();
+
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(content: Text('Patient booking deleted')),
                                 );
+
                               }
-                            },
+                              }
+
                           ),
                           onTap: () {
                             Navigator.push(

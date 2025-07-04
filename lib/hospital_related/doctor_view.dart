@@ -18,8 +18,6 @@ class _DoctorViewState extends State<DoctorView> {
   TextEditingController _searchController = TextEditingController();
   List<DocumentSnapshot> _allDoctors = [];
   List<DocumentSnapshot> _filteredDoctors = [];
-  String? selectedClinicId;
-
 
   @override
   void initState() {
@@ -77,17 +75,16 @@ class _DoctorViewState extends State<DoctorView> {
     );
 
     if (confirmed == true &&
-        selectedClinicId != null &&
+        widget.clinicId != null &&
         staff['staffId'] != null) {
       try {
-        // Determine which collection to delete from based on role
-        String collectionName = staff['role'] == 'doctor' ? 'doctors' : 'nurses';
 
-        // Delete the staff document
+        final role = staff['role'] ?? 'doctor'; // fallback to 'doctor' if role missing
+
         await FirebaseFirestore.instance
             .collection('clinics')
-            .doc(selectedClinicId)
-            .collection(collectionName)
+            .doc(widget.clinicId)
+            .collection(role == 'doctor' ? 'doctors' : 'nurses') // or handle other roles
             .doc(staff['staffId'])
             .delete();
 
@@ -96,7 +93,7 @@ class _DoctorViewState extends State<DoctorView> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('${staff['name']} has been deleted'),
-            backgroundColor: Colors.green,
+            backgroundColor: Colors.red,
           ),
         );
       } catch (e) {
@@ -181,8 +178,7 @@ class _DoctorViewState extends State<DoctorView> {
                 return ListView.builder(
                   itemCount: _filteredDoctors.length,
                   itemBuilder: (context, index) {
-                    final staff =
-                    snapshot.data!.docs[index].data() as Map<String, dynamic>;
+                    final staff =snapshot.data!.docs[index].data() as Map<String, dynamic>;
                     final doctor = _filteredDoctors[index];
                     return Padding(
                       padding: const EdgeInsets.all(8.0),
@@ -191,20 +187,6 @@ class _DoctorViewState extends State<DoctorView> {
                           borderRadius: BorderRadius.circular(width * 0.03),
                         ),
                         tileColor: AppColors.lightpacha,
-                        // trailing: Row(
-                        //   mainAxisSize: MainAxisSize.min,
-                        //   children: [
-                        //     GestureDetector(
-                        //       onTap: () {},
-                        //       child: Icon(Icons.edit),
-                        //     ),
-                        //     SizedBox(width: width * 0.02),
-                        //     GestureDetector(
-                        //       onTap: () {},
-                        //       child: Icon(Icons.delete),
-                        //     ),
-                        //   ],
-                        // ),
                         trailing: _buildStaffActions(staff),
                         title: Text(
                           doctor['name'] ?? 'No Name',

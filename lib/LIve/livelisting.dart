@@ -39,12 +39,74 @@ class _LiveTokenPageState extends State<LiveTokenPage> {
     );
 
     if (selected != null) {
-      final doctors = await _getOfflineDoctorsWithSessions(clinicId);
-      await _generatePdf(selected, doctors);
+      final selectedDay = DateFormat('EEEE').format(selected); // e.g. Monday
+
+      final clinicSnapshot = await FirebaseFirestore.instance
+          .collection('clinics')
+          .doc(clinicId)
+          .get();
+
+      final clinicName = clinicSnapshot.data()?['name'] ?? 'Unknown Clinic';
+
+      final doctors = await _getOfflineDoctorsWithSessions(clinicId, selectedDay);
+      await _generatePdf(selected, doctors,clinicName);
     }
   }
 
-  Future<List<Map<String, dynamic>>> _getOfflineDoctorsWithSessions(String clinicId) async {
+  Future<void> _generatePdf(DateTime date, List<Map<String, dynamic>> doctors, String clinicName) async {
+    final pdf = pw.Document();
+    final formattedDate = DateFormat('dd-MM-yyyy').format(date);
+    final selectedDay = DateFormat('EEEE').format(date);
+
+    pdf.addPage(
+      pw.MultiPage(
+        build: (pw.Context context) => [
+          pw.Text("Clinic: $clinicName", style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
+          pw.Text("Live Report", style: pw.TextStyle(fontSize: 20)),
+          pw.SizedBox(height: 10),
+          pw.Text("Date: $formattedDate"),
+          pw.SizedBox(height: 20),
+          _buildDoctorTable(doctors),
+        ],
+      ),
+    );
+
+    final directory = await getApplicationDocumentsDirectory();
+    final filePath = "${directory.path}/doctors_available_$formattedDate.pdf";
+    final file = File(filePath);
+    await file.writeAsBytes(await pdf.save());
+
+    // ScaffoldMessenger.of(context).showSnackBar(
+    //   SnackBar(content: Text("PDF saved at: $filePath")),
+    // );
+
+    await Printing.layoutPdf(
+      onLayout: (PdfPageFormat format) async => pdf.save(),
+    );
+  }
+
+  pw.Widget _buildDoctorTable(List<Map<String, dynamic>> doctors) {
+    return pw.Table.fromTextArray(
+      headers: ['S.No', 'Doctor Name', 'Specialization','Live or No Live','Total tokens'],
+      data: List<List<String>>.generate(
+        doctors.length,
+            (index) => [
+          '${index + 1}',
+          doctors[index]['name'] ?? 'Unknown',
+          doctors[index]['specialization'] ?? 'N/A',
+              doctors[index]['status'] ?? 'No Live',
+              "coming sooon",
+        ],
+      ),
+      headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+      cellAlignment: pw.Alignment.centerLeft,
+      border: pw.TableBorder.all(),
+      cellPadding: const pw.EdgeInsets.all(6),
+    );
+  }
+
+
+  Future<List<Map<String, dynamic>>> _getOfflineDoctorsWithSessions(String clinicId, String selectedDay) async {
     final List<Map<String, dynamic>> result = [];
 
     final clinicRef = FirebaseFirestore.instance.collection('clinics').doc(clinicId);
@@ -52,26 +114,28 @@ class _LiveTokenPageState extends State<LiveTokenPage> {
 
     for (final doc in doctorsSnapshot.docs) {
       final data = doc.data();
-      final consultationTimes = data['consultationTimes'] as Map<String, dynamic>?;
+      if (data == null) continue;
 
-      bool hasSession = false;
-      if (consultationTimes != null) {
-        for (var day in consultationTimes.keys) {
-          if (consultationTimes[day] != null && consultationTimes[day].isNotEmpty) {
-            hasSession = true;
-            break;
-          }
-        }
-      }
+      final availableDays = (data['availableDays'] as List<dynamic>?)
+          ?.map((e) => e.toString())
+          .toList();
 
-      final liveTokenSnapshot = await doc.reference.collection('liveTokenDetails').get();
-      final isLive = liveTokenSnapshot.docs.isNotEmpty;
+      // 🔍 Check if this doctor is in global liveToken collection
+      final liveTokenQuery = await FirebaseFirestore.instance
+          .collection('liveToken')
+          .where('doctorId', isEqualTo: doc.id)
+          .limit(1)
+          .get();
 
-      if (!isLive && hasSession) {
+      final isLive = liveTokenQuery.docs.isNotEmpty;
+
+      if (availableDays != null && availableDays.contains(selectedDay)) {
         result.add({
           'name': data['name'] ?? 'Unknown',
-          'clinicName': data['clinicName'],
-          'sessions': consultationTimes,
+          'specialization': data['specialization'] ?? 'N/A',
+          'clinicName': data['clinicName'] ?? '',
+          'availableDays': availableDays,
+          'status': isLive ? 'Live' : 'No Live',
         });
       }
     }
@@ -79,66 +143,6 @@ class _LiveTokenPageState extends State<LiveTokenPage> {
     return result;
   }
 
-  Future<void> _generatePdf(DateTime date, List<Map<String, dynamic>> doctors) async {
-    final pdf = pw.Document();
-    final formattedDate = DateFormat('dd-MM-yyyy').format(date);
-
-    pdf.addPage(
-      pw.MultiPage(
-        build: (pw.Context context) => [
-          pw.Text("Offline Doctors with Sessions", style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold)),
-          pw.SizedBox(height: 10),
-          pw.Text("Date Selected: $formattedDate"),
-          pw.SizedBox(height: 10),
-          for (var doc in doctors)
-            pw.Container(
-              margin: const pw.EdgeInsets.symmetric(vertical: 5),
-              child: pw.Column(
-                crossAxisAlignment: pw.CrossAxisAlignment.start,
-                children: [
-                  pw.Text("Doctor: ${doc['name']}"),
-                  pw.Text("Clinic: ${doc['clinicName']}"),
-                  pw.Text("Sessions:"),
-                  ..._buildSessionList(doc['sessions']),
-                ],
-              ),
-            ),
-        ],
-      ),
-    );
-
-    final directory = await getApplicationDocumentsDirectory();
-    final filePath = "${directory.path}/offline_doctors_$formattedDate.pdf";
-
-    final file = File(filePath);
-    await file.writeAsBytes(await pdf.save());
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("PDF saved at: $filePath")),
-    );
-
-    // Optional: Open preview
-    await Printing.layoutPdf(
-      onLayout: (PdfPageFormat format) async => pdf.save(),
-    );
-  }
-
-  List<pw.Widget> _buildSessionList(Map<String, dynamic> consultationTimes) {
-    final List<pw.Widget> sessionWidgets = [];
-
-    consultationTimes.forEach((day, sessions) {
-      if (sessions != null) {
-        sessionWidgets.add(pw.Text("  $day:"));
-        sessions.forEach((key, session) {
-          sessionWidgets.add(pw.Text("    From: ${session['from']}, To: ${session['to']}"));
-        });
-      }
-    });
-
-    return sessionWidgets;
-  }
-
-  // Filtering helpers
   void updateSearchQuery(String query) {
     setState(() {
       searchQuery = query;
@@ -222,32 +226,11 @@ class _LiveTokenPageState extends State<LiveTokenPage> {
           ],
         ),
       ),
-      floatingActionButton: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (showButtons) ...[
-            FloatingActionButton.extended(
-              heroTag: "live",
-              label: Text("Live Doctor"),
-              onPressed: () => _selectDateAndGenerate(widget.clinicId),
-              icon: Icon(Icons.online_prediction),
-            ),
-            SizedBox(height: 10),
-            FloatingActionButton.extended(
-              heroTag: "slow",
-              label: Text("Slow Move"),
-              onPressed: () => _selectDateAndGenerate(widget.clinicId),
-              icon: Icon(Icons.timelapse),
-            ),
-            SizedBox(height: 10),
-          ],
-          FloatingActionButton(
-            heroTag: "main",
-            child: Icon(showButtons ? Icons.close : Icons.add),
-            onPressed: () => setState(() => showButtons = !showButtons),
-          ),
-        ],
-      ),
+      floatingActionButton:FloatingActionButton(
+        child: Center(child: Icon(Icons.picture_as_pdf),),
+        onPressed: () {
+          _selectDateAndGenerate(widget.clinicId);
+        },),
       body: Padding(
         padding: const EdgeInsets.symmetric(vertical: 9.0),
         child: StreamBuilder<QuerySnapshot>(

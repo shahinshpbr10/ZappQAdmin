@@ -35,20 +35,54 @@ class _BookingsPageState extends State<BookingsPage> {
     currentClinicId=widget.clinicid;
   }
 
-  DateTime getAppointmentStartTime(String date, String timeRange) {
+  bookingDeletion(String bookingId)async{
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirm Deletion'),
+        content: const Text('Are you sure you want to delete this booking?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      await FirebaseFirestore.instance
+          .collection('clinics')
+          .doc(widget.clinicid)
+          .collection('bookings')
+          .doc(bookingId)
+          .delete();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Patient booking deleted')),
+      );
+    }
+  }
+
+  DateTime getAppointmentEndTime(String date, String timeRange) {
     try {
+      // Remove brackets if present
       timeRange = timeRange.replaceAll('[', '').replaceAll(']', '');
 
-      final startTimeString = timeRange.split(' - ').first.trim(); // "8:30 AM"
+      // Extract the END time part (after " - ")
+      final endTimeString = timeRange.split(' - ').last.trim(); // "9:00 AM"
 
       // Combine with date
-      final dateTimeString = "$date $startTimeString"; // "2025-07-05 8:30 AM"
+      final dateTimeString = "$date $endTimeString"; // "2025-07-05 9:00 AM"
 
       // Parse it into DateTime
       return DateFormat('yyyy-MM-dd h:mm a').parse(dateTimeString);
     } catch (e) {
-      print('Error parsing appointment start time: $e');
-      return DateTime.now(); // fallback to current time or handle as needed
+      print('Error parsing appointment end time: $e');
+      return DateTime.now(); // fallback to now
     }
   }
 
@@ -466,8 +500,6 @@ class _BookingsPageState extends State<BookingsPage> {
                       final data =
                           (filtered[index].data() as Map<String, dynamic>);
 
-                      DateTime startTime = getAppointmentStartTime(data['bookingDate'], data['appointmentTime']);
-                      print(startTime);
 
                       return Card(
                         shape: RoundedRectangleBorder(
@@ -480,7 +512,17 @@ class _BookingsPageState extends State<BookingsPage> {
                         elevation: 4,
                         child: ListTile(
                           contentPadding: EdgeInsets.all(16),
-                          title: Text(data['patientName'] ?? 'No Name'),
+                          title: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(data['patientName'] ?? 'No Name'),
+                              IconButton(
+                                icon: const Icon(Icons.delete, color: Colors.red),
+                                onPressed: ()  {
+                                  bookingDeletion(data['bookingId']);
+                                },
+                              ),                            ],
+                          ),
                           subtitle: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -491,7 +533,10 @@ class _BookingsPageState extends State<BookingsPage> {
                               Text('Payment Method:${data['paymentMethod']}'),
                               Text('Payment Amount:${data['paymentAmount']}'),
                               isExpired(data['bookingDate'])?Text('Token Number:${data['token']}'):SizedBox(),
-                              startTime.isAfter(DateTime.now()) ? tokenAssign(data) : SizedBox(),
+                              getAppointmentEndTime(data['bookingDate'], data['appointmentTime'])
+                                  .isAfter(DateTime.now())
+                                  ? tokenAssign(data)
+                                  : SizedBox(),
                             ],
                           ),
                         ),
