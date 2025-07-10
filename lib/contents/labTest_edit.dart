@@ -1,6 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-
 import '../common/colors.dart';
 
 class EditLabTestPage extends StatefulWidget {
@@ -32,48 +31,55 @@ class _EditLabTestPageState extends State<EditLabTestPage> {
     super.initState();
     final data = widget.testData;
 
-    testNameController = TextEditingController(text: data['TEST_NAME']);
-    sampleController = TextEditingController(text: data['SAMPLE']);
-    volController = TextEditingController(text: data['VOL']);
-    categoryController = TextEditingController(text: data['Category']);
-    methodController = TextEditingController(text: data['METHOD']);
-    rateController = TextEditingController(text: data['PATIENT_RATE'].toString());
-    reportTimeController = TextEditingController(text: data['REPORTING_TIME']);
-    daysController = TextEditingController(text: data['SCHEDULED_DAYS']);
-    cutoffController = TextEditingController(text: data['CUT_OFF_TIME']);
-    tslController = TextEditingController(text: data['TSL_NO'].toString());
+    testNameController = TextEditingController(text: data['TEST_NAME'] ?? '');
+    sampleController = TextEditingController(text: data['SAMPLE'] ?? '');
+    volController = TextEditingController(text: data['VOL'] ?? '');
+    categoryController = TextEditingController(text: data['Category'] ?? '');
+    methodController = TextEditingController(text: data['METHOD'] ?? '');
+    rateController = TextEditingController(text: data['PATIENT_RATE']?.toString() ?? '');
+    reportTimeController = TextEditingController(text: data['REPORTING_TIME'] ?? '');
+    daysController = TextEditingController(text: data['SCHEDULED_DAYS'] ?? '');
+    cutoffController = TextEditingController(text: data['CUT_OFF_TIME'] ?? '');
+    tslController = TextEditingController(text: data['TSL_NO']?.toString() ?? '');
   }
 
   Future<void> _saveChanges() async {
-    if (_formKey.currentState!.validate()) {
-      await FirebaseFirestore.instance.collection('lab_tests').doc(widget.docId).update({
-        'TEST_NAME': testNameController.text,
-        'SAMPLE': sampleController.text,
-        'VOL': volController.text,
-        'Category': categoryController.text,
-        'METHOD': methodController.text,
-        'PATIENT_RATE': int.tryParse(rateController.text) ?? 0,
-        'REPORTING_TIME': reportTimeController.text,
-        'SCHEDULED_DAYS': daysController.text,
-        'CUT_OFF_TIME': cutoffController.text,
-        'TSL_NO': int.tryParse(tslController.text) ?? 0,
-      });
+    Map<String, dynamic> updateData = {};
 
-      Navigator.pop(context);
+    if (testNameController.text.isNotEmpty) updateData['TEST_NAME'] = testNameController.text;
+    if (sampleController.text.isNotEmpty) updateData['SAMPLE'] = sampleController.text;
+    if (volController.text.isNotEmpty) updateData['VOL'] = volController.text;
+    if (categoryController.text.isNotEmpty) updateData['Category'] = categoryController.text;
+    if (methodController.text.isNotEmpty) updateData['METHOD'] = methodController.text;
+    if (rateController.text.isNotEmpty) {
+      updateData['PATIENT_RATE'] = int.tryParse(rateController.text) ?? 0;
     }
+    if (reportTimeController.text.isNotEmpty) updateData['REPORTING_TIME'] = reportTimeController.text;
+    if (daysController.text.isNotEmpty) updateData['SCHEDULED_DAYS'] = daysController.text;
+    if (cutoffController.text.isNotEmpty) updateData['CUT_OFF_TIME'] = cutoffController.text;
+    if (tslController.text.isNotEmpty) {
+      updateData['TSL_NO'] = int.tryParse(tslController.text) ?? 0;
+    }
+
+    if (updateData.isNotEmpty) {
+      await FirebaseFirestore.instance.collection('lab_tests').doc(widget.docId).update(updateData);
+    }
+
+    Navigator.pop(context);
   }
 
-  Widget _buildField(String label, TextEditingController controller, {bool isNumber = false}) {
+  Widget _buildField(String label, TextEditingController controller,
+      {bool isNumber = false}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: TextFormField(
         controller: controller,
         keyboardType: isNumber ? TextInputType.number : TextInputType.text,
         decoration: InputDecoration(
-          labelText: label,
+          labelText: "$label (Optional)",
+          labelStyle: const TextStyle(fontStyle: FontStyle.italic),
           border: const OutlineInputBorder(),
         ),
-        validator: (value) => value == null || value.isEmpty ? 'Required field' : null,
       ),
     );
   }
@@ -106,7 +112,7 @@ class _EditLabTestPageState extends State<EditLabTestPage> {
               ElevatedButton(
                 onPressed: _saveChanges,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor:AppColors.lightpacha,
+                  backgroundColor: AppColors.lightpacha,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                 ),
                 child: const Text(
