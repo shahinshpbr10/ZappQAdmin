@@ -64,6 +64,7 @@ dependencies:
   awesome_notifications: ^0.10.1
   shared_preferences: ^2.5.3
   url_launcher: ^6.2.5
+  mixpanel_flutter: ^2.4.4
 
 flutter_icons:
   android: true

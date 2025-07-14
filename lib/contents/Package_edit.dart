@@ -50,7 +50,7 @@ class _EditPackagePageState extends State<EditPackagePage> {
     totalTestCountController = TextEditingController(
       text: data['TOTAL TEST COUNT'].toString(),
     );
-    validityController = TextEditingController(text: data['VALIDITY']);
+    validityController = TextEditingController(text: data['VALIDITY'].toString());
   }
 
   void _saveChanges() async {

@@ -6,6 +6,7 @@ import 'package:zappq_admin_app/common/text_styles.dart';
 
 import 'common/colors.dart';
 import 'hospital_details.dart';
+import 'main.dart';
 
 // --- Animated Clinic Card Widget (Similar to the one in all_clinics...) ---
 class AnimatedClinicCardHome extends StatefulWidget {
@@ -372,6 +373,10 @@ class _ClinicListWidgetState extends State<ClinicListWidget> {
                           builder: (context) => ClinicDetailsPage(clinicData: data,ClinicId: doc.id,),
                         ),
                       );
+                      mixpanel.track("Clinic Card Clicked", properties: {
+                        "clinicName": "City Hospital"
+                      });
+                      print("📡 Tracked Home Page Viewed");
                     },
                     onFavoriteTap: () => _toggleFavorite(clinicId, data),
                   );

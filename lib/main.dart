@@ -3,6 +3,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mixpanel_flutter/mixpanel_flutter.dart';
 import 'package:zappq_admin_app/SplashScreen/splash.dart';
 import 'package:zappq_admin_app/authentication/auth.page.dart';
 import 'package:zappq_admin_app/hospital_related/Bookings.dart';
@@ -13,6 +14,9 @@ var width;
 
 // Global navigator key for navigation from static methods
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
+
+late Mixpanel mixpanel;
 
 /// Background handler (must be top-level function)
 @pragma('vm:entry-point')
@@ -45,6 +49,16 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
+
+
+  mixpanel = await Mixpanel.init(
+    "3dd0bff4d773a1a0ee2329fb2042ff68",
+    // optOutTrackingDefault: true,
+    trackAutomaticEvents: false,
+  );
+  mixpanel.setLoggingEnabled(true);
+
+  print("✅ Mixpanel Initialized");
 
   // Set the background messaging handler early on
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
