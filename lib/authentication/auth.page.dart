@@ -138,7 +138,10 @@ class _AuthScreenState extends State<AuthScreen> {
                         borderRadius: BorderRadius.circular(30),
                       ),
                     ),
-                    onPressed:() => isLoading ? null : _handleAdminLogin,
+                    onPressed: (){
+                      isLoading ? null :
+                        _handleAdminLogin();
+                    },
                     child:
                         isLoading
                             ? const CircularProgressIndicator(
