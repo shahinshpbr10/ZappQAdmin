@@ -41,7 +41,7 @@ class _AuthScreenState extends State<AuthScreen> {
     setState(() => isLoading = false);
 
     if (result == 'Login Success') {
-      Navigator.push(context, MaterialPageRoute(builder: (context) => BottomNavScreen(),));
+      Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => BottomNavScreen(),));
     } else {
       // Show error message in SnackBar
       ScaffoldMessenger.of(context).showSnackBar(
