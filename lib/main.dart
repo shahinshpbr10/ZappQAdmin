@@ -53,8 +53,8 @@ void main() async {
 
   mixpanel = await Mixpanel.init(
     "3dd0bff4d773a1a0ee2329fb2042ff68",
-    // optOutTrackingDefault: true,
-    trackAutomaticEvents: false,
+    optOutTrackingDefault: false,
+    trackAutomaticEvents: true,
   );
   mixpanel.setLoggingEnabled(true);
 
