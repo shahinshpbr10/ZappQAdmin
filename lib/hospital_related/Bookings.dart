@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:zappq_admin_app/common/colors.dart';
 
 class BookingsPage extends StatefulWidget {
@@ -401,6 +402,15 @@ class _BookingsPageState extends State<BookingsPage> {
       ],
     );
   }
+  void _makePhoneCall(String phoneNumber) async {
+    final Uri callUri = Uri(scheme: 'tel', path: phoneNumber);
+    if (await canLaunchUrl(callUri)) {
+      await launchUrl(callUri);
+    } else {
+      print('Could not launch $callUri');
+    }
+  }
+
 
   @override
   void dispose() {
@@ -529,7 +539,18 @@ class _BookingsPageState extends State<BookingsPage> {
                               Text('Age: ${data['age'] ?? 'N/A'}'),
                               Text('Date: ${data['bookingDate']}'),
                               Text('Doctor: ${data['doctorName']}'),
-                              Text('Phone number:${data['phoneNumber']}'),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text('Phone number: ${data['phoneNumber']}'),
+                                  IconButton(
+                                    onPressed: () {
+                                      _makePhoneCall(data['phoneNumber']);
+                                    },
+                                    icon: Icon(Icons.call),
+                                  ),
+                                ],
+                              ),
                               Text('Payment Method:${data['paymentMethod']}'),
                               Text('Payment Amount:${data['paymentAmount']}'),
                               isExpired(data['bookingDate'])?Text('Token Number:${data['token']}'):SizedBox(),
