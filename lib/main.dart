@@ -50,13 +50,13 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
 
-
-  mixpanel = await Mixpanel.init(
-    "3dd0bff4d773a1a0ee2329fb2042ff68",
-    optOutTrackingDefault: false,
-    trackAutomaticEvents: true,
-  );
-  mixpanel.setLoggingEnabled(true);
+  Mixpanel mixpanel = await Mixpanel.init("892b5e6ac425d5fd5bf6607a0ad683be", trackAutomaticEvents: true);
+  // mixpanel = await Mixpanel.init(
+  //   "3dd0bff4d773a1a0ee2329fb2042ff68",
+  //   optOutTrackingDefault: false,
+  //   trackAutomaticEvents: true,
+  // );
+  // mixpanel.setLoggingEnabled(true);
 
   print("✅ Mixpanel Initialized");
 

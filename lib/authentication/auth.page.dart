@@ -1,7 +1,11 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:mixpanel_flutter/mixpanel_flutter.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:zappq_admin_app/common/colors.dart';
 import '../botton_nav.dart';
+import '../main.dart';
 import 'firebase_auth.dart';
 
 class AuthScreen extends StatefulWidget {
@@ -24,9 +28,7 @@ class _AuthScreenState extends State<AuthScreen> {
   }
 
   Future<void> _handleAdminLogin() async {
-    setState(() {
-      isLoading = true;
-    });
+    setState(() => isLoading = true);
 
     final String name = nameController.text.trim();
     final String id = idController.text.trim();
@@ -41,9 +43,37 @@ class _AuthScreenState extends State<AuthScreen> {
     setState(() => isLoading = false);
 
     if (result == 'Login Success') {
-      Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => BottomNavScreen(),));
+      // Get app version
+      final packageInfo = await PackageInfo.fromPlatform();
+      final appVersion = packageInfo.version;
+
+      // Get location
+      String location = 'unknown';
+      try {
+        LocationPermission permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.always ||
+            permission == LocationPermission.whileInUse) {
+          final position = await Geolocator.getCurrentPosition();
+          location = "${position.latitude},${position.longitude}";
+        }
+      } catch (e) {
+        debugPrint("Location error: $e");
+      }
+
+      // Initialize and send data to Mixpanel
+      mixpanel.getPeople().set({
+        'user_id': id,
+        'user_type': 'admin',
+        'username': name,
+        'location': location,
+        'app_version': appVersion,
+      } as String,'');
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => BottomNavScreen()),
+      );
     } else {
-      // Show error message in SnackBar
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(result),
@@ -52,8 +82,8 @@ class _AuthScreenState extends State<AuthScreen> {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(10),
           ),
-          margin: EdgeInsets.all(20),
-          duration: Duration(seconds: 3),
+          margin: const EdgeInsets.all(20),
+          duration: const Duration(seconds: 3),
         ),
       );
     }
@@ -101,10 +131,7 @@ class _AuthScreenState extends State<AuthScreen> {
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 28.0,
-              vertical: 32.0,
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 28.0, vertical: 32.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -138,24 +165,18 @@ class _AuthScreenState extends State<AuthScreen> {
                         borderRadius: BorderRadius.circular(30),
                       ),
                     ),
-                    onPressed: (){
-                      isLoading ? null :
-                        _handleAdminLogin();
-                    },
-                    child:
-                        isLoading
-                            ? const CircularProgressIndicator(
-                              color: Colors.white,
-                            )
-                            : const Text(
-                              'LOGIN',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 22,
-                                letterSpacing: 1.1,
-                              ),
-                            ),
+                    onPressed: isLoading ? null : _handleAdminLogin,
+                    child: isLoading
+                        ? const CircularProgressIndicator(color: Colors.white)
+                        : const Text(
+                      'LOGIN',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 22,
+                        letterSpacing: 1.1,
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 18),

@@ -65,6 +65,8 @@ dependencies:
   shared_preferences: ^2.5.3
   url_launcher: ^6.2.5
   mixpanel_flutter: ^2.4.4
+  geolocator: ^14.0.2
+  package_info_plus: ^8.3.0
 
 flutter_icons:
   android: true
