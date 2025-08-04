@@ -26,33 +26,38 @@ class _BookingsPageState extends State<BookingsPage> {
       tokenControllers[bookingId] = TextEditingController();
     }
     return tokenControllers[bookingId]!;
-  }  String? currentClinicId;
+  }
+
+  String? currentClinicId;
   String uid = '';
   String? bookingDate;
-@override
+  @override
   void initState() {
     // TODO: implement initState
     super.initState();
-    currentClinicId=widget.clinicid;
+    currentClinicId = widget.clinicid;
   }
 
-  bookingDeletion(String bookingId)async{
+  bookingDeletion(String bookingId) async {
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Confirm Deletion'),
-        content: const Text('Are you sure you want to delete this booking?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Confirm Deletion'),
+            content: const Text(
+              'Are you sure you want to delete this booking?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('Delete'),
+              ),
+            ],
           ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
     );
 
     if (confirm == true) {
@@ -62,9 +67,9 @@ class _BookingsPageState extends State<BookingsPage> {
           .collection('bookings')
           .doc(bookingId)
           .delete();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Patient booking deleted')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Patient booking deleted')));
     }
   }
 
@@ -87,7 +92,6 @@ class _BookingsPageState extends State<BookingsPage> {
     }
   }
 
-
   Future<void> _updateToken(String bookingId, int token) async {
     if (currentClinicId == null) return;
 
@@ -100,12 +104,18 @@ class _BookingsPageState extends State<BookingsPage> {
           .update({'token': token});
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Token $token assigned successfully.'),backgroundColor: AppColors.lightpacha,),
+        SnackBar(
+          content: Text('Token $token assigned successfully.'),
+          backgroundColor: AppColors.lightpacha,
+        ),
       );
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Failed to assign token: $e'),backgroundColor: Colors.red,));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to assign token: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
@@ -328,9 +338,9 @@ class _BookingsPageState extends State<BookingsPage> {
 
     // Null checks for the fields you're using
     final bookingId = appointment['bookingId'] ?? '';
-    final date = appointment['bookingDate'] ?? '';  // Ensure date is not null or empty
+    final date =
+        appointment['bookingDate'] ?? ''; // Ensure date is not null or empty
     final doctorId = appointment['doctorId'] ?? '';
-
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -369,14 +379,20 @@ class _BookingsPageState extends State<BookingsPage> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: buttonColor,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
               ),
               onPressed: () {
                 final token = int.tryParse(tokenController.text);
-                if (token != null && bookingId.isNotEmpty && date.isNotEmpty && doctorId.isNotEmpty) {
+                if (token != null &&
+                    bookingId.isNotEmpty &&
+                    date.isNotEmpty &&
+                    doctorId.isNotEmpty) {
                   _updateToken(appointment['bookingId'], token);
                   updateTokenForAppointment(
                     bookingId,
@@ -390,7 +406,9 @@ class _BookingsPageState extends State<BookingsPage> {
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                      content: Text('Please enter a valid token number and make sure all data is correct'),
+                      content: Text(
+                        'Please enter a valid token number and make sure all data is correct',
+                      ),
                     ),
                   );
                 }
@@ -402,6 +420,7 @@ class _BookingsPageState extends State<BookingsPage> {
       ],
     );
   }
+
   void _makePhoneCall(String phoneNumber) async {
     final Uri callUri = Uri(scheme: 'tel', path: phoneNumber);
     if (await canLaunchUrl(callUri)) {
@@ -411,7 +430,6 @@ class _BookingsPageState extends State<BookingsPage> {
     }
   }
 
-
   @override
   void dispose() {
     // Dispose of all controllers
@@ -419,6 +437,59 @@ class _BookingsPageState extends State<BookingsPage> {
       controller.dispose();
     });
     super.dispose();
+  }
+
+  List<DocumentSnapshot> allBookings = []; // List of all bookings fetched
+  List<DocumentSnapshot> displayedBookings = []; // What you show on screen
+
+  void filterBookingsBySelectedDate() async {
+    DateTime? pickedDate = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+    );
+
+    if (pickedDate == null) return;
+
+    final selectedDateStr = DateFormat('yyyy-MM-dd').format(pickedDate);
+
+    displayedBookings =
+        allBookings.where((doc) {
+          final data = doc.data() as Map<String, dynamic>;
+          final bookingDate = data['bookingDate'] ?? '';
+          return bookingDate == selectedDateStr;
+        }).toList();
+
+    setState(() {});
+  }
+
+  void sortBookingsByTimestamp() {
+    displayedBookings.sort((a, b) {
+      final Timestamp timeA = a['timestamp'] ?? Timestamp(0, 0);
+      final Timestamp timeB = b['timestamp'] ?? Timestamp(0, 0);
+      return timeB.compareTo(timeA); // Descending: latest first
+    });
+  }
+  void fetchAndSortBookings() async {
+    final snapshot = await FirebaseFirestore.instance
+        .collection('clinics')
+        .doc('QV070')
+        .collection('bookings')
+        .get();
+
+    setState(() {
+      displayedBookings = snapshot.docs;
+      sortBookingsByTimestamp(); // sort after fetching
+    });
+  }
+
+  void filterCancelledBookings() {
+    displayedBookings =
+        allBookings
+            .where((doc) => doc['bookingStatus'] == 'cancelled')
+            .toList();
+    setState(() {});
   }
 
   @override
@@ -433,6 +504,41 @@ class _BookingsPageState extends State<BookingsPage> {
           child: Icon(Icons.picture_as_pdf),
         ),
         appBar: AppBar(
+          actions: [
+            PopupMenuButton<String>(
+              icon: const Icon(Icons.sort_rounded, color: AppColors.white),
+              onSelected: (value) {
+                // Reset filtered data
+                displayedBookings.clear();
+
+                if (value == 'all') {
+                  setState(() {});
+                } else if (value == 'date') {
+                  filterBookingsBySelectedDate();
+                } else if (value == 'cancelled') {
+                  filterCancelledBookings();
+                } else if (value == 'updated') {
+                  fetchAndSortBookings();
+                }
+              },
+              itemBuilder:
+                  (BuildContext context) => [
+                    const PopupMenuItem(value: 'all', child: Text('All')),
+                    const PopupMenuItem(
+                      value: 'date',
+                      child: Text('Filter by Date'),
+                    ),
+                    const PopupMenuItem(
+                      value: 'cancelled',
+                      child: Text('Cancelled Bookings'),
+                    ),
+                    const PopupMenuItem(
+                      value: 'updated',
+                      child: Text('Last Updated'),
+                    ),
+                  ],
+            ),
+          ],
           centerTitle: true,
           backgroundColor: AppColors.lightpacha,
           title: Text(
@@ -481,90 +587,140 @@ class _BookingsPageState extends State<BookingsPage> {
                         .orderBy('bookingDate', descending: true)
                         .snapshots(),
                 builder: (context, snapshot) {
-                  if (snapshot.hasError)
-                    return Center(child: Text('Error loading data'));
-                  if (snapshot.connectionState == ConnectionState.waiting)
-                    return Center(child: CircularProgressIndicator());
+                  if (snapshot.hasError) {
+                    return const Center(child: Text('Error loading data'));
+                  }
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
 
+                  // Get all docs from Firestore and store in allBookings
                   final docs = snapshot.data!.docs;
+                  allBookings = docs;
+
+                  // If user applied a date filter, use that list; else, fallback to docs
+                  final bookingsToDisplay =
+                      displayedBookings.isNotEmpty ? displayedBookings : docs;
+
+                  // Apply tab and search filters
                   final filtered =
-                      docs.where((doc) {
+                      bookingsToDisplay.where((doc) {
                         final data = doc.data() as Map<String, dynamic>;
                         final name = (data['patientName'] ?? '').toLowerCase();
                         final dateStr = data['bookingDate'] ?? '';
 
                         if (!name.contains(searchQuery)) return false;
-
                         if (currentTabIndex == 1) return isUpcoming(dateStr);
                         if (currentTabIndex == 2) return isExpired(dateStr);
                         return true;
                       }).toList();
 
                   if (filtered.isEmpty) {
-                    return Center(child: Text('No bookings found'));
+                    return const Center(child: Text('No bookings found'));
                   }
 
-                  return ListView.builder(
-                    itemCount: filtered.length,
-                    itemBuilder: (context, index) {
-                      final data =
-                          (filtered[index].data() as Map<String, dynamic>);
+                    return ListView.builder(
+                      itemCount: filtered.length,
+                      itemBuilder: (context, index) {
+                        final data = filtered[index].data() as Map<String, dynamic>;
 
-
-                      return Card(
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        margin: EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
-                        ),
-                        elevation: 4,
-                        child: ListTile(
-                          contentPadding: EdgeInsets.all(16),
-                          title: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(data['patientName'] ?? 'No Name'),
-                              IconButton(
-                                icon: const Icon(Icons.delete, color: Colors.red),
-                                onPressed: ()  {
-                                  bookingDeletion(data['bookingId']);
-                                },
-                              ),                            ],
+                        return Card(
+                          color: data['bookingStatus'] == 'cancelled' ? Colors.red : Colors.white, // <- 🔥 Move color here
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
                           ),
-                          subtitle: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('Age: ${data['age'] ?? 'N/A'}'),
-                              Text('Date: ${data['bookingDate']}'),
-                              Text('Doctor: ${data['doctorName']}'),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text('Phone number: ${data['phoneNumber']}'),
-                                  IconButton(
-                                    onPressed: () {
-                                      _makePhoneCall(data['phoneNumber']);
-                                    },
-                                    icon: Icon(Icons.call),
+                          margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          elevation: 4,
+                          child: ListTile(
+                            // Remove tileColor completely
+                            contentPadding: const EdgeInsets.all(16),
+                            title: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  data['patientName'] ?? 'No Name',
+                                  style: TextStyle(
+                                    color: data['bookingStatus'] == 'cancelled' ? Colors.white : Colors.black,
                                   ),
-                                ],
-                              ),
-                              Text('Payment Method:${data['paymentMethod']}'),
-                              Text('Payment Amount:${data['paymentAmount']}'),
-                              isExpired(data['bookingDate'])?Text('Token Number:${data['token']}'):SizedBox(),
-                              getAppointmentEndTime(data['bookingDate'], data['appointmentTime'])
-                                  .isAfter(DateTime.now())
-                                  ? tokenAssign(data)
-                                  : SizedBox(),
-                            ],
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.delete, color: Colors.red),
+                                  onPressed: () => bookingDeletion(data['bookingId']),
+                                ),
+                              ],
+                            ),
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Age: ${data['age'] ?? 'N/A'}',
+                                  style: TextStyle(
+                                    color: data['bookingStatus'] == 'cancelled' ? Colors.white : Colors.black,
+                                  ),
+                                ),
+                                Text(
+                                  'Date: ${data['bookingDate']}',
+                                  style: TextStyle(
+                                    color: data['bookingStatus'] == 'cancelled' ? Colors.white : Colors.black,
+                                  ),
+                                ),
+                                Text(
+                                  'Doctor: ${data['doctorName']}',
+                                  style: TextStyle(
+                                    color: data['bookingStatus'] == 'cancelled' ? Colors.white : Colors.black,
+                                  ),
+                                ),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      'Phone number: ${data['phoneNumber']}',
+                                      style: TextStyle(
+                                        color: data['bookingStatus'] == 'cancelled' ? Colors.white : Colors.black,
+                                      ),
+                                    ),
+                                    IconButton(
+                                      onPressed: () => _makePhoneCall(data['phoneNumber']),
+                                      icon: Icon(
+                                        Icons.call,
+                                        color: data['bookingStatus'] == 'cancelled' ? Colors.white : Colors.black,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                Text(
+                                  'Payment Method: ${data['paymentMethod']}',
+                                  style: TextStyle(
+                                    color: data['bookingStatus'] == 'cancelled' ? Colors.white : Colors.black,
+                                  ),
+                                ),
+                                Text(
+                                  'Payment Amount: ${data['paymentAmount']}',
+                                  style: TextStyle(
+                                    color: data['bookingStatus'] == 'cancelled' ? Colors.white : Colors.black,
+                                  ),
+                                ),
+                                if (isExpired(data['bookingDate']))
+                                  Text(
+                                    'Token Number: ${data['token']}',
+                                    style: TextStyle(
+                                      color: data['bookingStatus'] == 'cancelled' ? Colors.white : Colors.black,
+                                    ),
+                                  ),
+                                (getAppointmentEndTime(
+                                  data['bookingDate'],
+                                  data['appointmentTime'],
+                                ).isAfter(DateTime.now()) &&
+                                    data['bookingStatus'] != 'cancelled')
+                                    ? tokenAssign(data)
+                                    : const SizedBox(),
+                              ],
+                            ),
                           ),
-                        ),
-                      );
-                    },
-                  );
-                },
+                        );
+                      },
+                    );
+                  }
               ),
             ),
           ],
