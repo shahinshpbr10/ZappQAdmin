@@ -20,7 +20,7 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
-    _trackHomePageViewed();
+    // _trackHomePageViewed();
     checkInternetAccess();
   }
 
@@ -39,20 +39,20 @@ class _HomePageState extends State<HomePage> {
   }
 
 
-  void _trackHomePageViewed() async {
-    mixpanel.track("Home Page Viewed");
-    mixpanel.track("Home Page Viewed", properties: {
-      "userType": "Admin",
-      "device": Platform.operatingSystem,
-    });
-    await mixpanel.flush(); // Optional: ensures it's sent right away
-    if (mixpanel == null) {
-      print("⚠️ Mixpanel is null");
-      return;
-    }else{
-      print("✅ Mixpanel Not null");
-    }
-  }
+  // void _trackHomePageViewed() async {
+  //   mixpanel.track("Home Page Viewed");
+  //   mixpanel.track("Home Page Viewed", properties: {
+  //     "userType": "Admin",
+  //     "device": Platform.operatingSystem,
+  //   });
+  //   await mixpanel.flush(); // Optional: ensures it's sent right away
+  //   if (mixpanel == null) {
+  //     print("⚠️ Mixpanel is null");
+  //     return;
+  //   }else{
+  //     print("✅ Mixpanel Not null");
+  //   }
+  // }
 
 
 

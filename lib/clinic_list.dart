@@ -373,10 +373,6 @@ class _ClinicListWidgetState extends State<ClinicListWidget> {
                           builder: (context) => ClinicDetailsPage(clinicData: data,ClinicId: doc.id,),
                         ),
                       );
-                      mixpanel.track("Clinic Card Clicked", properties: {
-                        "clinicName": "City Hospital"
-                      });
-                      print("📡 Tracked Home Page Viewed");
                     },
                     onFavoriteTap: () => _toggleFavorite(clinicId, data),
                   );

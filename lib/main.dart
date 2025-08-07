@@ -15,9 +15,6 @@ var width;
 // Global navigator key for navigation from static methods
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
-
-late Mixpanel mixpanel;
-
 /// Background handler (must be top-level function)
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -50,15 +47,6 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
 
-  Mixpanel mixpanel = await Mixpanel.init("892b5e6ac425d5fd5bf6607a0ad683be", trackAutomaticEvents: true);
-  // mixpanel = await Mixpanel.init(
-  //   "3dd0bff4d773a1a0ee2329fb2042ff68",
-  //   optOutTrackingDefault: false,
-  //   trackAutomaticEvents: true,
-  // );
-  // mixpanel.setLoggingEnabled(true);
-
-  print("✅ Mixpanel Initialized");
 
   // Set the background messaging handler early on
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
@@ -245,7 +233,6 @@ class _MyAppState extends State<MyApp> {
       print('Smart clinic booking tapped from terminated state:');
       print('- Patient: ${data['patientName']}');
       print('- Booking For: ${data['bookingFor']}');
-
     }
   }
 

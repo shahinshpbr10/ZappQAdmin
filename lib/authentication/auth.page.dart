@@ -1,11 +1,9 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:mixpanel_flutter/mixpanel_flutter.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:zappq_admin_app/common/colors.dart';
 import '../botton_nav.dart';
-import '../main.dart';
 import 'firebase_auth.dart';
 
 class AuthScreen extends StatefulWidget {
@@ -61,13 +59,13 @@ class _AuthScreenState extends State<AuthScreen> {
       }
 
       // Initialize and send data to Mixpanel
-      mixpanel.getPeople().set({
-        'user_id': id,
-        'user_type': 'admin',
-        'username': name,
-        'location': location,
-        'app_version': appVersion,
-      } as String,'');
+      // mixpanel.getPeople().set({
+      //   'user_id': id,
+      //   'user_type': 'admin',
+      //   'username': name,
+      //   'location': location,
+      //   'app_version': appVersion,
+      // } as String,'');
 
       Navigator.pushReplacement(
         context,
