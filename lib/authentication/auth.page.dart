@@ -4,6 +4,8 @@ import 'package:geolocator/geolocator.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:zappq_admin_app/common/colors.dart';
 import '../botton_nav.dart';
+import '../landing_page.dart';
+import '../main.dart';
 import 'firebase_auth.dart';
 
 class AuthScreen extends StatefulWidget {
@@ -58,18 +60,10 @@ class _AuthScreenState extends State<AuthScreen> {
         debugPrint("Location error: $e");
       }
 
-      // Initialize and send data to Mixpanel
-      // mixpanel.getPeople().set({
-      //   'user_id': id,
-      //   'user_type': 'admin',
-      //   'username': name,
-      //   'location': location,
-      //   'app_version': appVersion,
-      // } as String,'');
 
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => BottomNavScreen()),
+        MaterialPageRoute(builder: (context) => HomePage()),
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(

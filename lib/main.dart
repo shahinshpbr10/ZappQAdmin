@@ -3,11 +3,11 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mixpanel_flutter/mixpanel_flutter.dart';
 import 'package:zappq_admin_app/SplashScreen/splash.dart';
 import 'package:zappq_admin_app/authentication/auth.page.dart';
 import 'package:zappq_admin_app/hospital_related/Bookings.dart';
 import 'botton_nav.dart';
+import 'landing_page.dart';
 
 var height;
 var width;
@@ -233,6 +233,7 @@ class _MyAppState extends State<MyApp> {
       print('Smart clinic booking tapped from terminated state:');
       print('- Patient: ${data['patientName']}');
       print('- Booking For: ${data['bookingFor']}');
+
     }
   }
 
@@ -247,7 +248,7 @@ class _MyAppState extends State<MyApp> {
       routes: {
         '/': (context) => SplashScreen(),
         '/auth': (context) => AuthScreen(),
-        '/home': (context) => BottomNavScreen(),
+        '/home': (context) => HomePage(),
       },
     );
   }
