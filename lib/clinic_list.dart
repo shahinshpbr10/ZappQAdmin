@@ -152,41 +152,67 @@ class _AnimatedClinicCardHomeState extends State<AnimatedClinicCardHome>
                           ],
                         ),
                         const SizedBox(height: 6),
-                        Row(
+                    StreamBuilder<DocumentSnapshot>(
+                      stream: FirebaseFirestore.instance
+                          .collection('clinics')
+                          .doc(widget.clinic['clinicId'])
+                          .snapshots(),
+                      builder: (context, snapshot) {
+                        if (snapshot.hasError) {
+                          return const Text('Error loading data');
+                        }
+                        if (!snapshot.hasData || !snapshot.data!.exists) {
+                          return const SizedBox();
+                        }
+
+                        final data = snapshot.data!.data() as Map<String, dynamic>;
+                        final impressions = data['clinic_impression']?.toString() ?? '0';
+
+                        return Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Icon(Icons.call, size: 16, color: Colors.grey[600]),
-                            const SizedBox(width: 6),
-                            Expanded(
+                            Flexible(
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.call, size: 16, color: Colors.grey[600]),
+                                  const SizedBox(width: 6),
+                                  Flexible(
+                                    child: Text(
+                                      phone,
+                                      style: AppTextStyles.smallBodyText.copyWith(
+                                        fontSize: 13,
+                                        color: Colors.grey[700],
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.green,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
                               child: Text(
-                                phone,
-                                style: AppTextStyles.smallBodyText.copyWith(
-                                  fontSize: 13,
-                                  color: Colors.grey[700],
+                                impressions,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
                                 ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
                           ],
-                        ),
+                        );
+                      },
+                    )
                       ],
                     ),
                   ),
-                  // GestureDetector(
-                  //   onTap: widget.onFavoriteTap,
-                  //   child: Container(
-                  //     padding: const EdgeInsets.all(8),
-                  //     decoration: BoxDecoration(
-                  //       color: AppColors.lightpacha.withOpacity(0.9),
-                  //       shape: BoxShape.circle,
-                  //     ),
-                  //     child: Icon(
-                  //       widget.isFavorite ? Icons.favorite : Icons.favorite_border,
-                  //       color: Colors.white,
-                  //       size: 20,
-                  //     ),
-                  //   ),
-                  // ),
                 ],
               ),
             ),

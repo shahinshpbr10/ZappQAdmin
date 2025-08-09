@@ -67,6 +67,7 @@ dependencies:
   mixpanel_flutter: ^2.4.4
   geolocator: ^14.0.2
   package_info_plus: ^8.3.0
+  show_custom_snackbar: ^0.0.1
 
 flutter_icons:
   android: true

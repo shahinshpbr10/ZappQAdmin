@@ -20,60 +20,36 @@ class BookingsPage extends StatefulWidget {
 class _BookingsPageState extends State<BookingsPage> {
   TextEditingController searchController = TextEditingController();
 
-
   String? currentClinicId;
   String uid = '';
   String? bookingDate;
+
+  String searchQuery = "";
+  DateTime? selectedDate;
+  int currentTabIndex = 0;
+  String currentSortFilter = 'updated'; // Track current filter
+
+  // Remove the manual booking lists - let StreamBuilder handle the data
+  List<DocumentSnapshot>? manualFilteredBookings; // Only for special filters
+
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
     currentClinicId = widget.clinicid;
   }
 
-
-
-
-  String searchQuery = "";
-  DateTime? selectedDate;
-
-  int currentTabIndex = 0;
-
-  // Filtering helpers
   void updateSearchQuery(String query) {
     setState(() {
       searchQuery = query;
     });
   }
 
-  Future<void> fetchClinicBookings(String clinicId) async {
-    try {
-      final bookingsSnapshot =
-          await FirebaseFirestore.instance
-              .collection('clinics')
-              .doc(clinicId)
-              .collection('bookings')
-              .get();
-
-      for (var doc in bookingsSnapshot.docs) {
-        print('Booking ID: ${doc.id}');
-        print('Data: ${doc.data()}');
-      }
-    } catch (e) {
-      print('Error fetching bookings: $e');
-    }
-  }
-
-  DateTime? fromDate;
-  DateTime? toDate;
-
-  // Generate PDF function with clinic name
   Future<void> generatePdf(
-    List<DocumentSnapshot> filteredBookings,
-    String clinicName,
-    DateTime fromDate,
-    DateTime toDate,
-  ) async {
+      List<DocumentSnapshot> filteredBookings,
+      String clinicName,
+      DateTime fromDate,
+      DateTime toDate,
+      ) async {
     final pdf = pw.Document();
 
     pdf.addPage(
@@ -103,16 +79,15 @@ class _BookingsPageState extends State<BookingsPage> {
                   'Doctor',
                   'Phone Number',
                 ],
-                data:
-                    filteredBookings.map((doc) {
-                      final data = doc.data() as Map<String, dynamic>;
-                      return [
-                        data['patientName'] ?? '',
-                        data['bookingDate'] ?? '',
-                        data['doctorName'] ?? '',
-                        data['phoneNumber'] ?? '',
-                      ];
-                    }).toList(),
+                data: filteredBookings.map((doc) {
+                  final data = doc.data() as Map<String, dynamic>;
+                  return [
+                    data['patientName'] ?? '',
+                    data['bookingDate'] ?? '',
+                    data['doctorName'] ?? '',
+                    data['phoneNumber'] ?? '',
+                  ];
+                }).toList(),
               ),
             ],
           );
@@ -125,7 +100,6 @@ class _BookingsPageState extends State<BookingsPage> {
     );
   }
 
-  // Select from and to date, then generate report
   Future<void> _selectDateRangeAndGenerateReport(BuildContext context) async {
     DateTimeRange? pickedRange = await showDateRangePicker(
       context: context,
@@ -137,33 +111,28 @@ class _BookingsPageState extends State<BookingsPage> {
       final fromDate = pickedRange.start;
       final toDate = pickedRange.end;
 
-      // Fetch clinic name
-      DocumentSnapshot clinicDoc =
-          await FirebaseFirestore.instance
-              .collection('clinics')
-              .doc(widget.clinicid)
-              .get();
+      DocumentSnapshot clinicDoc = await FirebaseFirestore.instance
+          .collection('clinics')
+          .doc(widget.clinicid)
+          .get();
 
       String clinicName =
           (clinicDoc.data() as Map<String, dynamic>)['clinicName'] ?? 'Clinic';
 
-      // Fetch bookings within date range
-      QuerySnapshot querySnapshot =
-          await FirebaseFirestore.instance
-              .collection('clinics')
-              .doc(widget.clinicid)
-              .collection('bookings')
-              .where(
-                'bookingDate',
-                isGreaterThanOrEqualTo: DateFormat(
-                  'yyyy-MM-dd',
-                ).format(fromDate),
-              )
-              .where(
-                'bookingDate',
-                isLessThanOrEqualTo: DateFormat('yyyy-MM-dd').format(toDate),
-              )
-              .get();
+      QuerySnapshot querySnapshot = await FirebaseFirestore.instance
+          .collection('clinics')
+          .doc(widget.clinicid)
+          .collection('bookings')
+          .where(
+        'bookingDate',
+        isGreaterThanOrEqualTo:
+        DateFormat('yyyy-MM-dd').format(fromDate),
+      )
+          .where(
+        'bookingDate',
+        isLessThanOrEqualTo: DateFormat('yyyy-MM-dd').format(toDate),
+      )
+          .get();
 
       List<DocumentSnapshot> filteredBookings = querySnapshot.docs;
 
@@ -175,11 +144,13 @@ class _BookingsPageState extends State<BookingsPage> {
     try {
       final now = DateTime.now();
       final date = DateFormat('yyyy-MM-dd').parse(dateStr);
-      return date.isAfter(now);
+      final today = DateTime(now.year, now.month, now.day);
+      return date.isAtSameMomentAs(today) || date.isAfter(today);
     } catch (_) {
       return false;
     }
   }
+
 
   bool isExpired(String dateStr) {
     try {
@@ -196,10 +167,7 @@ class _BookingsPageState extends State<BookingsPage> {
     return DateFormat('dd-MM-yyyy • hh:mm a').format(dateTime);
   }
 
-  List<DocumentSnapshot> allBookings = []; // List of all bookings fetched
-  List<DocumentSnapshot> displayedBookings = []; // What you show on screen
-
-  void filterBookingsBySelectedDate() async {
+  void filterBookingsBySelectedDate(List<DocumentSnapshot> allBookings) async {
     DateTime? pickedDate = await showDatePicker(
       context: context,
       initialDate: DateTime.now(),
@@ -211,20 +179,19 @@ class _BookingsPageState extends State<BookingsPage> {
 
     final selectedDateStr = DateFormat('yyyy-MM-dd').format(pickedDate);
 
-    displayedBookings =
-        allBookings.where((doc) {
-          final data = doc.data() as Map<String, dynamic>;
-          final bookingDate = data['bookingDate'] ?? '';
-          return bookingDate == selectedDateStr;
-        }).toList();
+    final filtered = allBookings.where((doc) {
+      final data = doc.data() as Map<String, dynamic>;
+      final bookingDate = data['bookingDate'] ?? '';
+      return bookingDate == selectedDateStr;
+    }).toList();
 
-    if (displayedBookings.isEmpty) {
+    if (filtered.isEmpty) {
       showDialog(
         context: context,
-        builder:
-            (context) => AlertDialog(
-          title: const Text('No  Bookings'),
-          content: const Text('There are no bookings available on selected date.'),
+        builder: (context) => AlertDialog(
+          title: const Text('No Bookings'),
+          content:
+          const Text('There are no bookings available on selected date.'),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
@@ -234,182 +201,278 @@ class _BookingsPageState extends State<BookingsPage> {
         ),
       );
     } else {
-      setState(() {});
-    }  }
+      setState(() {
+        manualFilteredBookings = filtered;
+        currentSortFilter = 'date';
+      });
+    }
+  }
 
-  void sortBookingsByTimestamp() {
-    displayedBookings.sort((a, b) {
+  List<DocumentSnapshot> sortBookingsByTimestamp(List<DocumentSnapshot> bookings) {
+    final sortedList = List<DocumentSnapshot>.from(bookings);
+    sortedList.sort((a, b) {
       final Timestamp timeA = a['timestamp'] ?? Timestamp(0, 0);
       final Timestamp timeB = b['timestamp'] ?? Timestamp(0, 0);
       return timeB.compareTo(timeA); // Descending: latest first
     });
+    return sortedList;
   }
 
-  void fetchAndSortBookings() async {
-    final snapshot =
-        await FirebaseFirestore.instance
-            .collection('clinics')
-            .doc(widget.clinicid)
-            .collection('bookings')
-            .get();
+  void filterCancelledBookings(List<DocumentSnapshot> allBookings) {
+    final filtered = allBookings.where((doc) => doc['bookingStatus'] == 'cancelled').toList();
 
-    setState(() {
-      displayedBookings = snapshot.docs;
-      sortBookingsByTimestamp(); // sort after fetching
-    });
-  }
-
-  void filterCancelledBookings() {
-    displayedBookings =
-        allBookings
-            .where((doc) => doc['bookingStatus'] == 'cancelled')
-            .toList();
-
-    if (displayedBookings.isEmpty) {
+    if (filtered.isEmpty) {
       showDialog(
         context: context,
-        builder:
-            (context) => AlertDialog(
-              title: const Text('No Cancelled Bookings'),
-              content: const Text('There are no cancelled bookings available.'),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('OK'),
-                ),
-              ],
+        builder: (context) => AlertDialog(
+          title: const Text('No Cancelled Bookings'),
+          content: const Text('There are no cancelled bookings available.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('OK'),
             ),
+          ],
+        ),
       );
     } else {
-      setState(() {});
+      setState(() {
+        manualFilteredBookings = filtered;
+        currentSortFilter = 'cancelled';
+      });
+    }
+  }
+
+  void filterRescheduledBookings(List<DocumentSnapshot> allBookings) {
+    final filtered = allBookings.where((doc) {
+      final data = doc.data() as Map<String, dynamic>?;
+      if (data == null) return false;
+      return data.containsKey('reshedule') && data['reshedule'] == true;
+    }).toList();
+
+    if (filtered.isEmpty) {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('No Rescheduled Bookings'),
+          content: const Text('There are no bookings marked as rescheduled.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+    } else {
+      setState(() {
+        manualFilteredBookings = filtered;
+        currentSortFilter = 'Resheduled';
+      });
+    }
+  }
+
+  // Get the appropriate stream query based on current filter
+  Stream<QuerySnapshot> getBookingsStream() {
+    var query = FirebaseFirestore.instance
+        .collection('clinics')
+        .doc(widget.clinicid)
+        .collection('bookings');
+
+    // Apply ordering based on current filter
+    if (currentSortFilter == 'updated') {
+      return query.orderBy('timestamp', descending: true).snapshots();
+    } else {
+      return query.orderBy('bookingDate', descending: true).snapshots();
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return DefaultTabController(
+    return  DefaultTabController(
       length: 3,
-      initialIndex: 0,
+      initialIndex: 0, // 0 = Upcoming tab is default now
       child: Scaffold(
         floatingActionButton: FloatingActionButton(
           onPressed: () => _selectDateRangeAndGenerateReport(context),
           tooltip: 'Pick Date & Generate PDF',
-          child: Icon(Icons.picture_as_pdf),
+          child: const Icon(Icons.picture_as_pdf),
         ),
         appBar: AppBar(
           actions: [
             PopupMenuButton<String>(
               icon: const Icon(Icons.sort_rounded, color: AppColors.white),
               onSelected: (value) {
-                // Reset filtered data
-                displayedBookings.clear();
-
-                if (value == 'all') {
-                  setState(() {});
-                } else if (value == 'date') {
-                  filterBookingsBySelectedDate();
-                } else if (value == 'cancelled') {
-                  filterCancelledBookings();
-                } else if (value == 'updated') {
-                  fetchAndSortBookings();
-                }
+                setState(() {
+                  currentSortFilter = value;
+                  manualFilteredBookings = null;
+                });
               },
-              itemBuilder:
-                  (BuildContext context) => [
-                    const PopupMenuItem(
-                      value: 'all',
-                      child: Text('Sort by Date'),
-                    ),
-                    const PopupMenuItem(
-                      value: 'date',
-                      child: Text('Filter by Date'),
-                    ),
-                    const PopupMenuItem(
-                      value: 'cancelled',
-                      child: Text('Cancelled Bookings'),
-                    ),
-                    const PopupMenuItem(
-                      value: 'updated',
-                      child: Text('Last Updated'),
-                    ),
-                  ],
+              itemBuilder: (BuildContext context) => const [
+                PopupMenuItem(
+                  value: 'updated',
+                  child: Text('Last Updated'),
+                ),
+                PopupMenuItem(
+                  value: 'all',
+                  child: Text('Sort by Date'),
+                ),
+                PopupMenuItem(
+                  value: 'date',
+                  child: Text('Filter by Date'),
+                ),
+                PopupMenuItem(
+                  value: 'cancelled',
+                  child: Text('Cancelled Bookings'),
+                ),
+                PopupMenuItem(
+                  value: 'Resheduled',
+                  child: Text('Resheduled'),
+                ),
+              ],
             ),
           ],
           centerTitle: true,
           backgroundColor: AppColors.lightpacha,
-          title: Text(
+          title: const Text(
             'Clinic Bookings',
             style: TextStyle(color: AppColors.white),
           ),
           bottom: TabBar(
-            labelColor: AppColors.white, // Color for selected tab
-            unselectedLabelColor: AppColors.white, // Color for unselected tabs
+            labelColor: AppColors.white,
+            unselectedLabelColor: AppColors.white,
             onTap: (index) {
               setState(() => currentTabIndex = index);
             },
             tabs: const [
-              Tab(text: 'All'),
               Tab(text: 'Upcoming'),
               Tab(text: 'Expired'),
+              Tab(text: 'All'),
             ],
           ),
         ),
         body: Column(
           children: [
-            // 🔍 Search Bar
             Padding(
               padding: const EdgeInsets.all(10.0),
               child: TextField(
                 controller: searchController,
                 decoration: InputDecoration(
                   hintText: 'Search by patient name',
-                  prefixIcon: Icon(Icons.search),
+                  prefixIcon: const Icon(Icons.search),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(20),
                   ),
                 ),
-                onChanged:
-                    (val) => setState(() => searchQuery = val.toLowerCase()),
+                onChanged: (val) =>
+                    setState(() => searchQuery = val.toLowerCase()),
               ),
             ),
-            // 📋 Booking List
             Expanded(
               child: StreamBuilder<QuerySnapshot>(
-                stream:
-                    FirebaseFirestore.instance
-                        .collection('clinics')
-                        .doc(widget.clinicid)
-                        .collection('bookings')
-                        .orderBy('bookingDate', descending: true)
-                        .snapshots(),
+                stream: getBookingsStream(),
                 builder: (context, snapshot) {
                   if (snapshot.hasError) {
-                    return const Center(child: Text('Error loading data'));
+                    return Center(child: Text('Error loading data: ${snapshot.error}'));
                   }
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(child: CircularProgressIndicator());
                   }
 
-                  // Get all docs from Firestore and store in allBookings
-                  final docs = snapshot.data!.docs;
-                  allBookings = docs;
+                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                    return const Center(child: Text('No bookings found'));
+                  }
 
-                  // If user applied a date filter, use that list; else, fallback to docs
-                  final bookingsToDisplay =
-                      displayedBookings.isNotEmpty ? displayedBookings : docs;
+                  final allDocs = snapshot.data!.docs;
 
-                  // Apply tab and search filters
-                  final filtered =
-                      bookingsToDisplay.where((doc) {
-                        final data = doc.data() as Map<String, dynamic>;
-                        final name = (data['patientName'] ?? '').toLowerCase();
-                        final dateStr = data['bookingDate'] ?? '';
+                  // Determine which bookings to display based on current filter
+                  List<DocumentSnapshot> bookingsToDisplay;
 
-                        if (!name.contains(searchQuery)) return false;
-                        if (currentTabIndex == 1) return isUpcoming(dateStr);
-                        if (currentTabIndex == 2) return isExpired(dateStr);
-                        return true;
-                      }).toList();
+                  if (manualFilteredBookings != null) {
+                    bookingsToDisplay = manualFilteredBookings!;
+                  } else {
+                    // Apply filtering directly without setState
+                    switch (currentSortFilter) {
+                      case 'cancelled':
+                        bookingsToDisplay = allDocs.where((doc) => doc['bookingStatus'] == 'cancelled').toList();
+                        if (bookingsToDisplay.isEmpty) {
+                          WidgetsBinding.instance.addPostFrameCallback((_) {
+                            showDialog(
+                              context: context,
+                              builder: (context) => AlertDialog(
+                                title: const Text('No Cancelled Bookings'),
+                                content: const Text('There are no cancelled bookings available.'),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(context),
+                                    child: const Text('OK'),
+                                  ),
+                                ],
+                              ),
+                            );
+                            setState(() {
+                              currentSortFilter = 'updated';
+                            });
+                          });
+                          return const Center(child: Text('No cancelled bookings found'));
+                        }
+                        break;
+                      case 'Resheduled':
+                        bookingsToDisplay = allDocs.where((doc) {
+                          final data = doc.data() as Map<String, dynamic>?;
+                          if (data == null) return false;
+                          return data.containsKey('reshedule') && data['reshedule'] == true;
+                        }).toList();
+                        if (bookingsToDisplay.isEmpty) {
+                          WidgetsBinding.instance.addPostFrameCallback((_) {
+                            showDialog(
+                              context: context,
+                              builder: (context) => AlertDialog(
+                                title: const Text('No Rescheduled Bookings'),
+                                content: const Text('There are no bookings marked as rescheduled.'),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(context),
+                                    child: const Text('OK'),
+                                  ),
+                                ],
+                              ),
+                            );
+                            setState(() {
+                              currentSortFilter = 'updated';
+                            });
+                          });
+                          return const Center(child: Text('No rescheduled bookings found'));
+                        }
+                        break;
+                      case 'date':
+                        if (manualFilteredBookings == null) {
+                          WidgetsBinding.instance.addPostFrameCallback((_) {
+                            filterBookingsBySelectedDate(allDocs);
+                          });
+                          return const Center(child: CircularProgressIndicator());
+                        }
+                        bookingsToDisplay = allDocs;
+                        break;
+                      default:
+                        bookingsToDisplay = allDocs;
+                    }
+                  }
+
+                  // Apply search and tab filters
+                  final filtered = bookingsToDisplay.where((doc) {
+                    final data = doc.data() as Map<String, dynamic>;
+                    final name = (data['patientName'] ?? '').toLowerCase();
+                    final dateStr = data['bookingDate'] ?? '';
+
+                    // Search filter
+                    if (!name.contains(searchQuery)) return false;
+
+                    // Tab filter
+                    if (currentTabIndex == 0) return isUpcoming(dateStr); // Upcoming
+                    if (currentTabIndex == 1) return isExpired(dateStr); // Expired
+                    return true; // All
+                  }).toList();
 
                   if (filtered.isEmpty) {
                     return const Center(child: Text('No bookings found'));
@@ -418,14 +481,12 @@ class _BookingsPageState extends State<BookingsPage> {
                   return ListView.builder(
                     itemCount: filtered.length,
                     itemBuilder: (context, index) {
-                      final data =
-                          filtered[index].data() as Map<String, dynamic>;
+                      final data = filtered[index].data() as Map<String, dynamic>;
 
                       return Card(
-                        color:
-                            data['bookingStatus'] == 'cancelled'
-                                ? Colors.red
-                                : Colors.white,
+                        color: data['bookingStatus'] == 'cancelled'
+                            ? Colors.red
+                            : ((data['reshedule'] ?? false) ? Colors.orange : Colors.white),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(20),
                         ),
@@ -442,20 +503,15 @@ class _BookingsPageState extends State<BookingsPage> {
                               Text(
                                 data['patientName'] ?? 'No Name',
                                 style: TextStyle(
-                                  color:
-                                      data['bookingStatus'] == 'cancelled'
-                                          ? Colors.white
-                                          : Colors.black,
+                                  color: data['bookingStatus'] == 'cancelled'
+                                      ? Colors.white
+                                      : Colors.black,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
-                              data['paymentMethod']=='online'? Icon(
-                                Icons.wifi,
-                                size: 16,
-                              ):Icon(
-                                Icons.wifi_off,
-                                size: 16,
-                              ),
+                              data['paymentMethod'] == 'online'
+                                  ? const Icon(Icons.wifi, size: 16)
+                                  : const Icon(Icons.wifi_off, size: 16),
                             ],
                           ),
                           subtitle: Column(
@@ -464,42 +520,45 @@ class _BookingsPageState extends State<BookingsPage> {
                               Text(
                                 'Booking Date: ${data['bookingDate']}',
                                 style: TextStyle(
-                                  color:
-                                      data['bookingStatus'] == 'cancelled'
-                                          ? Colors.white
-                                          : Colors.black,
+                                  color: data['bookingStatus'] == 'cancelled'
+                                      ? Colors.white
+                                      : Colors.black,
                                 ),
                               ),
-                              Text(
-                                "Created:${formatTimestamp(data['timestamp'])}",
-                                style: TextStyle(
-                                  color:
-                                      data['bookingStatus'] == 'cancelled'
-                                          ? Colors.white
-                                          : Colors.black,
-                                ),
-                              ),
-                              // if (isExpired(data['bookingDate']))
+                              if (data['timestamp'] != null)
                                 Text(
-                                  'Token Number: ${data['token'] ?? '-'}',
+                                  "Created: ${formatTimestamp(data['timestamp'])}",
                                   style: TextStyle(
-                                    color:
-                                        data['bookingStatus'] == 'cancelled'
-                                            ? Colors.white
-                                            : Colors.black,
+                                    color: data['bookingStatus'] == 'cancelled'
+                                        ? Colors.white
+                                        : Colors.black,
                                   ),
                                 ),
+                              Text(
+                                'Token Number: ${data['token'] ?? '-'}',
+                                style: TextStyle(
+                                  color: data['bookingStatus'] == 'cancelled'
+                                      ? Colors.white
+                                      : Colors.black,
+                                ),
+                              ),
                             ],
                           ),
-                          // trailing: const Icon(
-                          //   Icons.arrow_forward_ios,
-                          //   size: 16,
-                          // ),
+                          trailing: (data["Conform_Reschedule"] == false||data['Conform_Delete'] == false)
+                              ? const Icon(
+                            Icons.circle_rounded,
+                            size: 15,
+                            color: Colors.blue,
+                          )
+                              : null,
                           onTap: () {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (_) => BookingDetailsPage(data: data, clinicId: widget.clinicid,),
+                                builder: (_) => BookingDetailsPage(
+                                  data: data,
+                                  clinicId: widget.clinicid,
+                                ),
                               ),
                             );
                           },
