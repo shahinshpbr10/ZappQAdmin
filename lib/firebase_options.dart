@@ -42,13 +42,13 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions web = FirebaseOptions(
     apiKey: 'AIzaSyDKkyLUyCgBEWOfq0Gs7Yfv5FLWiZgVV1I',
-    appId: '1:853054702494:web:2e30c6d1cb702c29a30c8f',
+    appId: '1:853054702494:web:2ef7570d055f0a0ba30c8f',
     messagingSenderId: '853054702494',
     projectId: 'docbooking-9ec13',
     authDomain: 'docbooking-9ec13.firebaseapp.com',
     databaseURL: 'https://docbooking-9ec13-default-rtdb.asia-southeast1.firebasedatabase.app',
     storageBucket: 'docbooking-9ec13.appspot.com',
-    measurementId: 'G-GEJ09LYWM1',
+    measurementId: 'G-KFS6C3HXGR',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
@@ -67,7 +67,7 @@ class DefaultFirebaseOptions {
     projectId: 'docbooking-9ec13',
     databaseURL: 'https://docbooking-9ec13-default-rtdb.asia-southeast1.firebasedatabase.app',
     storageBucket: 'docbooking-9ec13.appspot.com',
-    androidClientId: '853054702494-378emiflr6at5testppt5hm2al2bc11c.apps.googleusercontent.com',
+    androidClientId: '853054702494-1g1d431p6vmsl4kuvstfr49bkroujtou.apps.googleusercontent.com',
     iosClientId: '853054702494-n9h4qgmubj517g98pkl9063r1g6084aj.apps.googleusercontent.com',
     iosBundleId: 'com.quadvare.zappqAdmin',
   );
@@ -79,7 +79,7 @@ class DefaultFirebaseOptions {
     projectId: 'docbooking-9ec13',
     databaseURL: 'https://docbooking-9ec13-default-rtdb.asia-southeast1.firebasedatabase.app',
     storageBucket: 'docbooking-9ec13.appspot.com',
-    androidClientId: '853054702494-378emiflr6at5testppt5hm2al2bc11c.apps.googleusercontent.com',
+    androidClientId: '853054702494-1g1d431p6vmsl4kuvstfr49bkroujtou.apps.googleusercontent.com',
     iosClientId: '853054702494-at79r2mvjgo2hgqqq1rg4v89u24hbmvi.apps.googleusercontent.com',
     iosBundleId: 'com.example.zappqAdminApp',
   );

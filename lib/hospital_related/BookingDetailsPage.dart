@@ -79,7 +79,10 @@ class _BookingDetailsPageState extends State<BookingDetailsPage> {
   }
 
   Future<void> handleReschedule(
-      BuildContext context, String clinicId, String bookingId) async {
+    BuildContext context,
+    String clinicId,
+    String bookingId,
+  ) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (BuildContext context) {
@@ -108,20 +111,17 @@ class _BookingDetailsPageState extends State<BookingDetailsPage> {
           .doc(clinicId)
           .collection('bookings')
           .doc(bookingId)
-          .update({
-        'Conform_Reschedule': true,
-      });
+          .update({'Conform_Reschedule': true, 'confirm_cancel': true});
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Handle successfully')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Handle successfully')));
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
     }
   }
-
 
   Future<void> updateTokenForAppointment(
     String bookingId,
@@ -577,56 +577,90 @@ class _BookingDetailsPageState extends State<BookingDetailsPage> {
   }
 
   /// Function to confirm reschedule
-  Future<void> confirmReschedule(
-    BuildContext context,
-    String clinicId,
-    String bookingId,
-  ) async {
-    try {
-      await FirebaseFirestore.instance
-          .collection('clinics')
-          .doc(clinicId)
-          .collection('bookings')
-          .doc(bookingId)
-          .update({'confirmReschedule': true});
-
-      Navigator.pop(context); // Close the alert box
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Reschedule confirmed successfully')),
-      );
-    } catch (e) {
-      Navigator.pop(context); // Close the alert box even if failed
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error confirming reschedule: $e')),
-      );
-    }
-  }
-
-  /// Function to show confirmation alert
   void showConfirmRescheduleDialog(
     BuildContext context,
     String clinicId,
     String bookingId,
+    VoidCallback onHandled, // callback to update UI
   ) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text("Confirm Reschedule"),
-          content: const Text(
-            "Are you sure you want to confirm the reschedule for this booking?",
-          ),
+          title: const Text("Confirm Booking Action"),
+          content: const Text("Are you sure you handled operations PAKKA!!!!!"),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
               child: const Text("Cancel"),
             ),
             ElevatedButton(
-              onPressed: () {
-                confirmReschedule(context, clinicId, bookingId);
-              },
               style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+              onPressed: () async {
+                try {
+                  final bookingDoc =
+                      await FirebaseFirestore.instance
+                          .collection('clinics')
+                          .doc(clinicId)
+                          .collection('bookings')
+                          .doc(bookingId)
+                          .get();
+
+                  if (!bookingDoc.exists) {
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Booking not found')),
+                    );
+                    return;
+                  }
+
+                  final data = bookingDoc.data() ?? {};
+                  final updates = <String, dynamic>{};
+
+                  if (data['reshedule'] == true &&
+                      data['Conform_Reschedule'] != true) {
+                    updates['Conform_Reschedule'] = true;
+                  }
+
+                  if (data['confirm_cancel'] != true &&
+                      data['bookingStatus'] == 'cancelled') {
+                    updates['confirm_cancel'] = true;
+                  }
+
+                  if (updates.isEmpty) {
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('No actions needed')),
+                    );
+                    return;
+                  }
+
+                  await FirebaseFirestore.instance
+                      .collection('clinics')
+                      .doc(clinicId)
+                      .collection('bookings')
+                      .doc(bookingId)
+                      .update(updates);
+
+                  Navigator.pop(context);
+
+                  // Update UI in parent widget
+                  onHandled();
+
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        'Booking updated: ${updates.keys.join(", ")}',
+                      ),
+                    ),
+                  );
+                } catch (e) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Error updating booking: $e')),
+                  );
+                }
+              },
               child: const Text("Confirm"),
             ),
           ],
@@ -660,27 +694,32 @@ class _BookingDetailsPageState extends State<BookingDetailsPage> {
             onPressed: () => bookingDeletion(data['bookingId']),
             icon: Icon(Icons.delete, color: Colors.red),
           ),
-          (data['reshedule'] == true && data['Conform_Reschedule'] == false)
+          // (data['reshedule'] == true && data['Conform_Reschedule'] == false)
+          (data["Conform_Reschedule"] == false ||
+                  data['confirm_cancel'] == false)
               ? TextButton(
-            style: ButtonStyle(
-              backgroundColor: MaterialStateProperty.all(Colors.blue), // solid color
-            ),
-            onPressed: () async {
-              await handleReschedule(
-                context,
-                widget.clinicId,
-                data['bookingId'],
-              );
-
-              setState(() {
-                data['Conform_Reschedule'] = true;
-              });
-            },
-            child: const Text(
-              "Handled",
-              style: TextStyle(color: AppColors.white),
-            ),
-          )
+                style: ButtonStyle(
+                  backgroundColor: MaterialStateProperty.all(Colors.blue),
+                ),
+                onPressed: () {
+                  showConfirmRescheduleDialog(
+                    context,
+                    widget.clinicId,
+                    data["bookingId"],
+                    () {
+                      setState(() {
+                        // Update local data so button hides
+                        data["Conform_Reschedule"] = true;
+                        data["confirm_cancel"] = true;
+                      });
+                    },
+                  );
+                },
+                child: const Text(
+                  "Handled",
+                  style: TextStyle(color: AppColors.white),
+                ),
+              )
               : const SizedBox.shrink(),
         ],
       ),
@@ -689,15 +728,20 @@ class _BookingDetailsPageState extends State<BookingDetailsPage> {
           Expanded(
             child: SingleChildScrollView(
               child: StreamBuilder<DocumentSnapshot>(
-                stream: FirebaseFirestore.instance
-                    .collection('clinics')
-                    .doc(widget.clinicId)
-                    .collection('bookings')
-                    .doc(data["bookingId"]) // pass the booking ID from your page
-                    .snapshots(),
+                stream:
+                    FirebaseFirestore.instance
+                        .collection('clinics')
+                        .doc(widget.clinicId)
+                        .collection('bookings')
+                        .doc(
+                          data["bookingId"],
+                        ) // pass the booking ID from your page
+                        .snapshots(),
                 builder: (context, snapshot) {
                   if (snapshot.hasError) {
-                    return const Center(child: Text('Error loading booking details'));
+                    return const Center(
+                      child: Text('Error loading booking details'),
+                    );
                   }
                   if (!snapshot.hasData || !snapshot.data!.exists) {
                     return const Center(child: CircularProgressIndicator());
@@ -727,13 +771,15 @@ class _BookingDetailsPageState extends State<BookingDetailsPage> {
                             ),
                             detailItem("Booking Date", data['bookingDate']),
                             detailItem("Booking Slot", data['appointmentTime']),
-                            if (data['reshedule'] == true||data['Admin reshedule'] == true)
+                            if (data['reshedule'] == true ||
+                                data['Admin reshedule'] == true)
                               detailItem(
                                 "Old Booking Date",
                                 data['oldBookingDate'],
                                 valueColor: Colors.red,
                               ),
-                            if (data['reshedule'] == true||data['Admin reshedule'] == true)
+                            if (data['reshedule'] == true ||
+                                data['Admin reshedule'] == true)
                               detailItem(
                                 "Old Booking Slot",
                                 data['oldAppointmentTime'],
@@ -745,10 +791,10 @@ class _BookingDetailsPageState extends State<BookingDetailsPage> {
                             detailItem("Token Number", data['token']),
                             detailItem("Status", data['bookingStatus']),
                             (getAppointmentEndTime(
-                              data['bookingDate'],
-                              data['appointmentTime'],
-                            ).isAfter(DateTime.now()) &&
-                                data['bookingStatus'] != 'cancelled')
+                                      data['bookingDate'],
+                                      data['appointmentTime'],
+                                    ).isAfter(DateTime.now()) &&
+                                    data['bookingStatus'] != 'cancelled')
                                 ? tokenAssign(data)
                                 : const SizedBox(),
                           ],

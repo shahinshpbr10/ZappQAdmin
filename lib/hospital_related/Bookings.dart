@@ -53,44 +53,47 @@ class _BookingsPageState extends State<BookingsPage> {
     final pdf = pw.Document();
 
     pdf.addPage(
-      pw.Page(
+      pw.MultiPage(
+        pageFormat: PdfPageFormat.a4,
         build: (pw.Context context) {
-          return pw.Column(
-            children: [
-              pw.Text(
-                'Patient Bookings Report',
-                textAlign: pw.TextAlign.center,
+          return [
+            pw.Center(
+              child: pw.Text(
+                '$clinicName - Patient Bookings Report',
                 style: pw.TextStyle(
-                  fontSize: 18,
+                  fontSize: 20,
                   fontWeight: pw.FontWeight.bold,
                 ),
               ),
-              pw.SizedBox(height: 10),
-              pw.Text(
-                'From ${DateFormat('dd-MM-yyyy').format(fromDate)} to ${DateFormat('dd-MM-yyyy').format(toDate)}',
-                style: pw.TextStyle(fontSize: 14),
-              ),
-              pw.SizedBox(height: 20),
-              pw.Table.fromTextArray(
-                border: pw.TableBorder.all(),
-                headers: [
-                  'Patient Name',
-                  'Booking Date',
-                  'Doctor',
-                  'Phone Number',
-                ],
-                data: filteredBookings.map((doc) {
-                  final data = doc.data() as Map<String, dynamic>;
-                  return [
-                    data['patientName'] ?? '',
-                    data['bookingDate'] ?? '',
-                    data['doctorName'] ?? '',
-                    data['phoneNumber'] ?? '',
-                  ];
-                }).toList(),
-              ),
-            ],
-          );
+            ),
+            pw.SizedBox(height: 10),
+            pw.Text(
+              'From ${DateFormat('dd-MM-yyyy').format(fromDate)} to ${DateFormat('dd-MM-yyyy').format(toDate)}',
+              style: pw.TextStyle(fontSize: 14),
+            ),
+            pw.SizedBox(height: 20),
+            pw.Table.fromTextArray(
+              border: pw.TableBorder.all(),
+              cellAlignment: pw.Alignment.centerLeft,
+              headers: [
+                'S.No',
+                'Patient Name',
+                'Booking Date',
+                'Doctor Name',
+                'Phone Number',
+              ],
+              data: List.generate(filteredBookings.length, (index) {
+                final data = filteredBookings[index].data() as Map<String, dynamic>? ?? {};
+                return [
+                  '${index + 1}', // Serial number
+                  data['patientName'] ?? '',
+                  data['bookingDate'] ?? '',
+                  data['doctorName'] ?? '',
+                  data['phoneNumber'] ?? '',
+                ];
+              }),
+            )
+          ];
         },
       ),
     );
@@ -99,6 +102,7 @@ class _BookingsPageState extends State<BookingsPage> {
       onLayout: (PdfPageFormat format) async => pdf.save(),
     );
   }
+
 
   Future<void> _selectDateRangeAndGenerateReport(BuildContext context) async {
     DateTimeRange? pickedRange = await showDateRangePicker(
@@ -117,7 +121,7 @@ class _BookingsPageState extends State<BookingsPage> {
           .get();
 
       String clinicName =
-          (clinicDoc.data() as Map<String, dynamic>)['clinicName'] ?? 'Clinic';
+          (clinicDoc.data() as Map<String, dynamic>)['name'] ?? 'Clinic';
 
       QuerySnapshot querySnapshot = await FirebaseFirestore.instance
           .collection('clinics')
@@ -155,8 +159,9 @@ class _BookingsPageState extends State<BookingsPage> {
   bool isExpired(String dateStr) {
     try {
       final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
       final date = DateFormat('yyyy-MM-dd').parse(dateStr);
-      return date.isBefore(now);
+      return date.isBefore(today);
     } catch (_) {
       return false;
     }
@@ -544,7 +549,7 @@ class _BookingsPageState extends State<BookingsPage> {
                               ),
                             ],
                           ),
-                          trailing: (data["Conform_Reschedule"] == false||data['Conform_Delete'] == false)
+                          trailing: (data["Conform_Reschedule"] == false||data['confirm_cancel'] == false)
                               ? const Icon(
                             Icons.circle_rounded,
                             size: 15,

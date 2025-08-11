@@ -7,6 +7,7 @@ import 'package:zappq_admin_app/SplashScreen/splash.dart';
 import 'package:zappq_admin_app/authentication/auth.page.dart';
 import 'package:zappq_admin_app/hospital_related/Bookings.dart';
 import 'botton_nav.dart';
+import 'firebase_options.dart';
 import 'landing_page.dart';
 
 var height;
@@ -45,7 +46,7 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
+  await Firebase.initializeApp( options: DefaultFirebaseOptions.currentPlatform,);
 
 
   // Set the background messaging handler early on
