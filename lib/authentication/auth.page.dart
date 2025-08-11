@@ -1,4 +1,5 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -32,53 +33,85 @@ class _AuthScreenState extends State<AuthScreen> {
 
     final String name = nameController.text.trim();
     final String id = idController.text.trim();
-    final String fcmToken = await FirebaseMessaging.instance.getToken() ?? '';
 
-    final String result = await adminLogin(
-      name: name,
-      id: id,
-      fcmToken: fcmToken,
-    );
-
-    setState(() => isLoading = false);
-
-    if (result == 'Login Success') {
-      // Get app version
-      final packageInfo = await PackageInfo.fromPlatform();
-      final appVersion = packageInfo.version;
-
-      // Get location
-      String location = 'unknown';
-      try {
-        LocationPermission permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.always ||
-            permission == LocationPermission.whileInUse) {
-          final position = await Geolocator.getCurrentPosition();
-          location = "${position.latitude},${position.longitude}";
+    try {
+      // Get FCM token safely
+      String? fcmToken = '';
+      if (!kIsWeb) {
+        try {
+          fcmToken = await FirebaseMessaging.instance.getToken();
+        } catch (e) {
+          debugPrint("FCM token error: $e");
         }
-      } catch (e) {
-        debugPrint("Location error: $e");
       }
 
+      // Call admin login API
+      final String result = await adminLogin(
+        name: name,
+        id: id,
+        fcmToken: fcmToken ?? '',
+      );
 
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => HomePage()),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(result),
-          backgroundColor: Colors.red,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
-          margin: const EdgeInsets.all(20),
-          duration: const Duration(seconds: 3),
-        ),
-      );
+      if (result == 'Login Success') {
+        // Get app version
+        String appVersion = 'unknown';
+        try {
+          final packageInfo = await PackageInfo.fromPlatform();
+          appVersion = packageInfo.version;
+        } catch (e) {
+          debugPrint("App version error: $e");
+        }
+
+        // Get location safely
+        String location = 'unknown';
+        if (!kIsWeb) {
+          try {
+            LocationPermission permission = await Geolocator.requestPermission();
+            if (permission == LocationPermission.always ||
+                permission == LocationPermission.whileInUse) {
+              final position = await Geolocator.getCurrentPosition();
+              location = "${position.latitude},${position.longitude}";
+            }
+          } catch (e) {
+            debugPrint("Location error: $e");
+          }
+        } else {
+          debugPrint("Location skipped: Web requires HTTPS & user permission.");
+        }
+
+        debugPrint("Login success: name=$name, version=$appVersion, loc=$location");
+
+        // Navigate to home
+        if (mounted) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => HomePage()),
+          );
+        }
+      } else {
+        _showSnackBar(result, Colors.red);
+      }
+    } catch (e, st) {
+      debugPrint("Login process error: $e\n$st");
+      _showSnackBar("Unexpected error, please try again", Colors.red);
+    } finally {
+      if (mounted) setState(() => isLoading = false);
     }
+  }
+
+  void _showSnackBar(String message, Color color) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: color,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
+        margin: const EdgeInsets.all(20),
+        duration: const Duration(seconds: 3),
+      ),
+    );
   }
 
   @override
