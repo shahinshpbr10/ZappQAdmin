@@ -286,12 +286,11 @@ class _BookingsPageState extends State<BookingsPage> {
 
     // Apply ordering based on current filter
     if (currentSortFilter == 'updated') {
-      return query.orderBy('timestamp', descending: true).snapshots();
+      return query.orderBy('lastUpdated', descending: true).snapshots();
     } else {
       return query.orderBy('bookingDate', descending: true).snapshots();
     }
   }
-
   @override
   Widget build(BuildContext context) {
     return  DefaultTabController(

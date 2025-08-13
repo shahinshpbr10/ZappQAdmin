@@ -797,6 +797,64 @@ class _BookingDetailsPageState extends State<BookingDetailsPage> {
                                     data['bookingStatus'] != 'cancelled')
                                 ? tokenAssign(data)
                                 : const SizedBox(),
+                            //visiting time add
+                            (getAppointmentEndTime(
+                                      data['bookingDate'],
+                                      data['appointmentTime'],
+                                    ).isAfter(DateTime.now()) &&
+                                    data['bookingStatus'] != 'cancelled' &&
+                                    data['token'] > 0)
+                                ? Align(
+                              alignment: Alignment.centerLeft,
+                                  child: ElevatedButton(
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.blue,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                    ),
+                                    onPressed: () async {
+                                      final TimeOfDay? pickedTime =
+                                          await showTimePicker(
+                                            context: context,
+                                            initialTime: TimeOfDay.now(),
+                                          );
+
+                                      if (pickedTime != null) {
+                                        final String formattedTime = pickedTime
+                                            .format(context);
+
+                                        await FirebaseFirestore.instance
+                                            .collection('clinics')
+                                            .doc(widget.clinicId)
+                                            .collection('bookings')
+                                            .doc(data["bookingId"])
+                                            .set({
+                                              'visiting_time': formattedTime,
+                                            }, SetOptions(merge: true));
+
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                              "Visiting time set to $formattedTime",
+                                            ),
+                                          ),
+                                        );
+                                      }
+                                    },
+                                    child: Text(
+                                      data['visiting_time'] != null
+                                          ? 'Visiting Time: ${data['visiting_time']}'
+                                          : 'Select Visiting Time',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                )
+                                : const SizedBox(),
                           ],
                         ),
                       ),
