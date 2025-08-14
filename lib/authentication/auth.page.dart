@@ -4,9 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:zappq_admin_app/common/colors.dart';
-import '../botton_nav.dart';
 import '../landing_page.dart';
-import '../main.dart';
+import '../onboard.dart';
 import 'firebase_auth.dart';
 
 class AuthScreen extends StatefulWidget {
@@ -81,11 +80,11 @@ class _AuthScreenState extends State<AuthScreen> {
 
         debugPrint("Login success: name=$name, version=$appVersion, loc=$location");
 
-        // Navigate to home
+        // Navigate to onboarding
         if (mounted) {
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (context) => HomePage()),
+            MaterialPageRoute(builder: (context) => OnBoardingPage()),
           );
         }
       } else {

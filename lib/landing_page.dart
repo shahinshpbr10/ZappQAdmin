@@ -1,10 +1,8 @@
-import 'dart:io';
-import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:zappq_admin_app/common/colors.dart';
 import 'clinic_list.dart';
-import 'contents/settingspage.dart';
-import 'main.dart'; // Make sure this file contains the updated ClinicListWidget
+import 'contents/SpecializationsPage.dart';
+import 'onboard.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -16,46 +14,6 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
-
-
-  // @override
-  // void initState() {
-  //   super.initState();
-  //   _trackHomePageViewed();
-  //   checkInternetAccess();
-  // }
-
-
-  // void checkInternetAccess() async {
-  //   try {
-  //     final response = await http.get(Uri.parse('https://google.com'));
-  //     if (response.statusCode == 200) {
-  //       print("✅ Internet is working");
-  //     } else {
-  //       print("❌ Got a response but not 200: ${response.statusCode}");
-  //     }
-  //   } catch (e) {
-  //     print("❌ Internet request failed: $e");
-  //   }
-  // }
-  //
-  //
-  // void _trackHomePageViewed() async {
-  //   mixpanel.track("Home Page Viewed");
-  //   mixpanel.track("Home Page Viewed", properties: {
-  //     "userType": "Admin",
-  //     "device": Platform.operatingSystem,
-  //   });
-  //   await mixpanel.flush(); // Optional: ensures it's sent right away
-  //   if (mixpanel == null) {
-  //     print("⚠️ Mixpanel is null");
-  //     return;
-  //   }else{
-  //     print("✅ Mixpanel Not null");
-  //   }
-  // }
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -70,6 +28,19 @@ class _HomePageState extends State<HomePage> {
             padding: const EdgeInsets.all(16),
             child: Row(
               children: [
+                GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => OnBoardingPage()),
+                    );
+                  },
+                  child: Icon(
+                    Icons.arrow_back_ios_outlined,
+                    color: AppColors.white,
+                  ),
+                ),
+                const SizedBox(width: 8),
                 // Expanded Search Field
                 Expanded(
                   child: TextField(
@@ -84,8 +55,10 @@ class _HomePageState extends State<HomePage> {
                       prefixIcon: const Icon(Icons.search),
                       filled: true,
                       fillColor: Colors.grey[200],
-                      contentPadding:
-                      const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
+                      contentPadding: const EdgeInsets.symmetric(
+                        vertical: 0,
+                        horizontal: 16,
+                      ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide.none,
@@ -93,21 +66,22 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ),
                 ),
-                const SizedBox(width: 8),
-                // Settings Button
-                IconButton(
-                  icon: Icon(Icons.settings,color: AppColors.white,),
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => SettingsPage()),
-                    );
-                  },
-                )
               ],
             ),
           ),
         ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: AppColors.black,
+        child: Center(
+          child: Icon(Icons.cast_for_education, color: Colors.white),
+        ),
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => SpecializationsPage()),
+          );
+        },
       ),
       body: Padding(
         padding: EdgeInsets.all(width * 0.03),

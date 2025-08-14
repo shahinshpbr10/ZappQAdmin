@@ -6,9 +6,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:zappq_admin_app/SplashScreen/splash.dart';
 import 'package:zappq_admin_app/authentication/auth.page.dart';
 import 'package:zappq_admin_app/hospital_related/Bookings.dart';
-import 'botton_nav.dart';
 import 'firebase_options.dart';
 import 'landing_page.dart';
+import 'onboard.dart';
 
 var height;
 var width;
@@ -249,7 +249,7 @@ class _MyAppState extends State<MyApp> {
       routes: {
         '/': (context) => SplashScreen(),
         '/auth': (context) => AuthScreen(),
-        '/home': (context) => HomePage(),
+        '/home': (context) => OnBoardingPage(),
       },
     );
   }

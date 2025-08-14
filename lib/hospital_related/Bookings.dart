@@ -4,9 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:zappq_admin_app/common/colors.dart';
-
 import 'BookingDetailsPage.dart';
 
 class BookingsPage extends StatefulWidget {
@@ -27,7 +25,7 @@ class _BookingsPageState extends State<BookingsPage> {
   String searchQuery = "";
   DateTime? selectedDate;
   int currentTabIndex = 0;
-  String currentSortFilter = 'updated'; // Track current filter
+  String currentSortFilter = 'created'; // Track current filter
 
   // Remove the manual booking lists - let StreamBuilder handle the data
   List<DocumentSnapshot>? manualFilteredBookings; // Only for special filters
@@ -285,10 +283,19 @@ class _BookingsPageState extends State<BookingsPage> {
         .collection('bookings');
 
     // Apply ordering based on current filter
-    if (currentSortFilter == 'updated') {
-      return query.orderBy('lastUpdated', descending: true).snapshots();
-    } else {
-      return query.orderBy('bookingDate', descending: true).snapshots();
+    switch (currentSortFilter) {
+      case 'created':
+      // Sort by creation timestamp (newest first)
+        return query.orderBy('timestamp', descending: true).snapshots();
+      case 'updated':
+      // Sort by last updated (newest first)
+        return query.orderBy('lastUpdated', descending: true).snapshots();
+      case 'all':
+      // Sort by booking date (newest first)
+        return query.orderBy('bookingDate', descending: true).snapshots();
+      default:
+      // Default to timestamp ordering
+        return query.orderBy('timestamp', descending: true).snapshots();
     }
   }
   @override
@@ -313,6 +320,10 @@ class _BookingsPageState extends State<BookingsPage> {
                 });
               },
               itemBuilder: (BuildContext context) => const [
+                PopupMenuItem(
+                  value: 'created',
+                  child: Text('Sort by created at'),
+                ),
                 PopupMenuItem(
                   value: 'updated',
                   child: Text('Last Updated'),
